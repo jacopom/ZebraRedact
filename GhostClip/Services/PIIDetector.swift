@@ -18,10 +18,12 @@ final class PIIDetector: ObservableObject {
         defer { isProcessing = false }
 
         let allItems = regexDetector.detect(in: text)
-        // Filter by enabled categories
         detectedItems = allItems.filter { enabledCategories.contains($0.type) }
         ghostedText = regexDetector.mask(text: text, items: detectedItems)
         privacyScore = calculateScore(items: detectedItems)
+
+        // Save token→original mappings for rehydration
+        GhostMappingStore.shared.storeBatch(items: detectedItems)
     }
 
     // MARK: - Toggle Individual Items

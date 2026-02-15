@@ -29,6 +29,7 @@
 		A100000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B100000014; };
 		A100000015 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B100000015; };
 		A100000016 /* HighlightedTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000018; };
+		A100000017 /* GhostMappingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000019; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,6 +57,7 @@
 		B100000016 /* GhostClip.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GhostClip.entitlements; sourceTree = "<group>"; };
 		B100000017 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B100000018 /* HighlightedTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedTextView.swift; sourceTree = "<group>"; };
+		B100000019 /* GhostMappingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostMappingStore.swift; sourceTree = "<group>"; };
 		C100000001 /* GhostClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GhostClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -159,6 +161,7 @@
 				B10000000F /* VaultManager.swift */,
 				B100000010 /* HotkeyManager.swift */,
 				B100000011 /* ClipboardManager.swift */,
+				B100000019 /* GhostMappingStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -279,6 +282,7 @@
 				A100000012 /* Constants.swift in Sources */,
 				A100000013 /* Theme.swift in Sources */,
 				A100000016 /* HighlightedTextView.swift in Sources */,
+				A100000017 /* GhostMappingStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

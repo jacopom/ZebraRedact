@@ -1,11 +1,22 @@
 import SwiftUI
 
+enum EditorMode: String, CaseIterable {
+    case highlight = "Ghost"
+    case preview = "Preview"
+    case rehydrate = "Rehydrate"
+}
+
 struct OverlayEditorView: View {
     @StateObject private var detector = PIIDetector()
     @State private var originalText: String
-    @State private var showGhosted = false
+    @State private var editorMode: EditorMode = .highlight
     @State private var copied = false
     @State private var hoveredType: PIIType?
+
+    // Rehydrate state
+    @State private var rehydrateInput = ""
+    @State private var rehydrateOutput = ""
+    @State private var rehydrateTokenCount = 0
 
     let initialText: String
     let onApply: (String) -> Void
@@ -53,15 +64,18 @@ struct OverlayEditorView: View {
 
             Spacer()
 
-            // View toggle
-            Picker("View", selection: $showGhosted) {
-                Text("Highlight").tag(false)
-                Text("Preview").tag(true)
+            // 3-way mode picker
+            Picker("Mode", selection: $editorMode) {
+                ForEach(EditorMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
             }
             .pickerStyle(.segmented)
-            .frame(width: 180)
+            .frame(width: 260)
 
-            GhostScoreBadge(score: detector.privacyScore, method: detector.detectionMethod)
+            if editorMode != .rehydrate {
+                GhostScoreBadge(score: detector.privacyScore, method: detector.detectionMethod)
+            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -71,22 +85,110 @@ struct OverlayEditorView: View {
 
     private var editorArea: some View {
         ZStack {
-            if showGhosted {
+            switch editorMode {
+            case .highlight:
+                if originalText.isEmpty {
+                    emptyState
+                } else {
+                    HighlightedTextView(
+                        text: $originalText,
+                        piiItems: detector.detectedItems,
+                        isEditable: true,
+                        onTextChange: { newText in
+                            detector.scan(text: newText)
+                        }
+                    )
+                }
+            case .preview:
                 GhostedPreviewView(text: detector.ghostedText)
-            } else if originalText.isEmpty {
-                emptyState
-            } else {
-                HighlightedTextView(
-                    text: $originalText,
-                    piiItems: detector.detectedItems,
-                    isEditable: true,
-                    onTextChange: { newText in
-                        detector.scan(text: newText)
-                    }
-                )
+            case .rehydrate:
+                rehydrateArea
             }
         }
     }
+
+    // MARK: - Rehydrate Area
+
+    private var rehydrateArea: some View {
+        VStack(spacing: 0) {
+            // Top: paste LLM response
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Label("LLM Response", systemImage: "text.bubble")
+                        .font(.caption.bold())
+                        .foregroundStyle(GhostTheme.secondaryText)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+                    Spacer()
+                    Button {
+                        if let clip = ClipboardManager.shared.readText() {
+                            rehydrateInput = clip
+                            performRehydration()
+                        }
+                    } label: {
+                        Label("Paste", systemImage: "doc.on.clipboard")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+
+                TextEditor(text: $rehydrateInput)
+                    .font(.system(.body, design: .monospaced))
+                    .scrollContentBackground(.hidden)
+                    .padding(.horizontal, 12)
+                    .onChange(of: rehydrateInput) {
+                        performRehydration()
+                    }
+            }
+            .frame(maxHeight: .infinity)
+
+            Divider()
+
+            // Bottom: rehydrated output
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Label("Rehydrated Output", systemImage: "arrow.uturn.backward.circle.fill")
+                        .font(.caption.bold())
+                        .foregroundStyle(GhostTheme.green)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+
+                    if rehydrateTokenCount > 0 {
+                        Text("\(rehydrateTokenCount) token\(rehydrateTokenCount == 1 ? "" : "s") restored")
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(GhostTheme.green.opacity(0.15))
+                            .foregroundStyle(GhostTheme.green)
+                            .clipShape(Capsule())
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+
+                RehydratedTextView(
+                    originalText: rehydrateInput,
+                    rehydratedText: rehydrateOutput,
+                    mappings: GhostMappingStore.shared.findTokens(in: rehydrateInput)
+                )
+                .padding(.horizontal, 4)
+            }
+            .frame(maxHeight: .infinity)
+            .background(GhostTheme.green.opacity(0.02))
+        }
+    }
+
+    private func performRehydration() {
+        rehydrateOutput = GhostMappingStore.shared.rehydrate(rehydrateInput)
+        rehydrateTokenCount = GhostMappingStore.shared.rehydrationCount(in: rehydrateInput)
+    }
+
+    // MARK: - Empty State
 
     private var emptyState: some View {
         VStack(spacing: 16) {
@@ -134,33 +236,106 @@ struct OverlayEditorView: View {
     Sarah
     """
 
-    // MARK: - Sidebar (Hemingway-style stats)
+    // MARK: - Sidebar
 
     private var sidebar: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Score
-                sidebarScore
-
+                if editorMode == .rehydrate {
+                    sidebarRehydrateInfo
+                } else {
+                    sidebarScore
+                    Divider()
+                    sidebarPIIBreakdown
+                }
                 Divider()
-
-                // PII breakdown
-                sidebarPIIBreakdown
-
-                Divider()
-
-                // Quick actions
                 sidebarActions
-
                 Spacer()
-
-                // Help text
                 sidebarHelp
             }
             .padding(16)
         }
         .background(GhostTheme.sidebarBackground)
     }
+
+    // MARK: - Sidebar: Rehydrate Info
+
+    private var sidebarRehydrateInfo: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Rehydrate")
+                .font(.caption.bold())
+                .foregroundStyle(GhostTheme.secondaryText)
+                .textCase(.uppercase)
+                .tracking(0.5)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Label("\(GhostMappingStore.shared.count) tokens stored", systemImage: "key.fill")
+                    .font(.callout)
+
+                Label("\(rehydrateTokenCount) found in text", systemImage: "magnifyingglass")
+                    .font(.callout)
+                    .foregroundStyle(rehydrateTokenCount > 0 ? GhostTheme.green : GhostTheme.secondaryText)
+            }
+
+            Divider()
+
+            Text("How it works")
+                .font(.caption.bold())
+                .foregroundStyle(GhostTheme.secondaryText)
+
+            VStack(alignment: .leading, spacing: 8) {
+                flowStep(num: "1", text: "Ghost your text (Ghost tab)")
+                flowStep(num: "2", text: "Paste safe text into LLM")
+                flowStep(num: "3", text: "Copy LLM response here")
+                flowStep(num: "4", text: "Tokens get replaced back")
+            }
+
+            Divider()
+
+            // Token list
+            if !rehydrateInput.isEmpty {
+                let tokens = GhostMappingStore.shared.findTokens(in: rehydrateInput)
+                if !tokens.isEmpty {
+                    Text("Matched Tokens")
+                        .font(.caption.bold())
+                        .foregroundStyle(GhostTheme.secondaryText)
+
+                    ForEach(tokens) { mapping in
+                        HStack(spacing: 4) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(GhostTheme.highlightColor(for: mapping.type))
+                                .frame(width: 12, height: 12)
+
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(mapping.token)
+                                    .font(.caption2.monospaced().bold())
+                                    .foregroundStyle(GhostTheme.purple)
+                                Text("→ " + mapping.originalValue.prefix(20) + (mapping.originalValue.count > 20 ? "..." : ""))
+                                    .font(.caption2)
+                                    .foregroundStyle(GhostTheme.secondaryText)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func flowStep(num: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(num)
+                .font(.caption2.bold())
+                .frame(width: 18, height: 18)
+                .background(GhostTheme.purple.opacity(0.15))
+                .clipShape(Circle())
+                .foregroundStyle(GhostTheme.purple)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(GhostTheme.secondaryText)
+        }
+    }
+
+    // MARK: - Sidebar: Score
 
     private var sidebarScore: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -188,12 +363,14 @@ struct OverlayEditorView: View {
 
     private var scoreLabel: String {
         switch detector.privacyScore {
-        case 100:     return "Clean"
+        case 100:      return "Clean"
         case 90..<100: return "Safe"
         case 70..<90:  return "Caution"
         default:       return "Unsafe"
         }
     }
+
+    // MARK: - Sidebar: PII Breakdown
 
     private var sidebarPIIBreakdown: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -219,9 +396,7 @@ struct OverlayEditorView: View {
                         count: group.count,
                         maskedCount: group.maskedCount,
                         isHovered: hoveredType == group.type,
-                        onToggle: {
-                            toggleAllOfType(group.type)
-                        }
+                        onToggle: { toggleAllOfType(group.type) }
                     )
                     .onHover { isHovered in
                         hoveredType = isHovered ? group.type : nil
@@ -231,54 +406,93 @@ struct OverlayEditorView: View {
         }
     }
 
+    // MARK: - Sidebar: Actions
+
     private var sidebarActions: some View {
         VStack(spacing: 8) {
-            Button {
-                detector.maskAll()
-                detector.remask(originalText: originalText)
-            } label: {
-                Label("Ghost All PII", systemImage: "eye.slash.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(GhostTheme.purple)
-            .controlSize(.regular)
-
-            Button {
-                detector.unmaskAll()
-                detector.remask(originalText: originalText)
-            } label: {
-                Label("Reveal All", systemImage: "eye.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-
-            Button {
-                if let clipText = ClipboardManager.shared.readText(), !clipText.isEmpty {
-                    originalText = clipText
-                    detector.scan(text: originalText)
+            if editorMode == .rehydrate {
+                Button {
+                    ClipboardManager.shared.writeText(rehydrateOutput)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+                } label: {
+                    Label(copied ? "Copied!" : "Copy Rehydrated Text", systemImage: copied ? "checkmark" : "doc.on.clipboard.fill")
+                        .frame(maxWidth: .infinity)
                 }
-            } label: {
-                Label("Paste from Clipboard", systemImage: "doc.on.clipboard")
-                    .frame(maxWidth: .infinity)
+                .buttonStyle(.borderedProminent)
+                .tint(copied ? GhostTheme.green : GhostTheme.purple)
+                .controlSize(.regular)
+                .disabled(rehydrateOutput.isEmpty)
+                .animation(.easeInOut(duration: 0.2), value: copied)
+
+                Button {
+                    GhostMappingStore.shared.clearAll()
+                    performRehydration()
+                } label: {
+                    Label("Clear Token History", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+            } else {
+                Button {
+                    detector.maskAll()
+                    detector.remask(originalText: originalText)
+                } label: {
+                    Label("Ghost All PII", systemImage: "eye.slash.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(GhostTheme.purple)
+                .controlSize(.regular)
+
+                Button {
+                    detector.unmaskAll()
+                    detector.remask(originalText: originalText)
+                } label: {
+                    Label("Reveal All", systemImage: "eye.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+
+                Button {
+                    if let clipText = ClipboardManager.shared.readText(), !clipText.isEmpty {
+                        originalText = clipText
+                        detector.scan(text: originalText)
+                    }
+                } label: {
+                    Label("Paste from Clipboard", systemImage: "doc.on.clipboard")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
         }
     }
 
+    // MARK: - Sidebar: Help
+
     private var sidebarHelp: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Highlighted text contains PII.")
-                .font(.caption)
-                .foregroundStyle(GhostTheme.secondaryText)
-            Text("Click a category to toggle ghosting.")
-                .font(.caption)
-                .foregroundStyle(GhostTheme.secondaryText)
-            Text("Switch to Preview to see safe output.")
-                .font(.caption)
-                .foregroundStyle(GhostTheme.secondaryText)
+            if editorMode == .rehydrate {
+                Text("Paste the AI response above.")
+                    .font(.caption)
+                    .foregroundStyle(GhostTheme.secondaryText)
+                Text("[GHOST_X] tokens will be restored.")
+                    .font(.caption)
+                    .foregroundStyle(GhostTheme.secondaryText)
+            } else {
+                Text("Highlighted text contains PII.")
+                    .font(.caption)
+                    .foregroundStyle(GhostTheme.secondaryText)
+                Text("Click a category to toggle ghosting.")
+                    .font(.caption)
+                    .foregroundStyle(GhostTheme.secondaryText)
+                Text("Switch to Preview to see safe output.")
+                    .font(.caption)
+                    .foregroundStyle(GhostTheme.secondaryText)
+            }
         }
     }
 
@@ -286,10 +500,15 @@ struct OverlayEditorView: View {
 
     private var footerBar: some View {
         HStack {
-            // Character count
-            Text("\(originalText.count) chars · \(originalText.split(separator: " ").count) words")
-                .font(.caption)
-                .foregroundStyle(GhostTheme.tertiaryText)
+            if editorMode == .rehydrate {
+                Text("\(rehydrateTokenCount) token\(rehydrateTokenCount == 1 ? "" : "s") replaced")
+                    .font(.caption)
+                    .foregroundStyle(GhostTheme.tertiaryText)
+            } else {
+                Text("\(originalText.count) chars · \(originalText.split(separator: " ").count) words")
+                    .font(.caption)
+                    .foregroundStyle(GhostTheme.tertiaryText)
+            }
 
             Spacer()
 
@@ -298,23 +517,39 @@ struct OverlayEditorView: View {
             }
             .keyboardShortcut(.escape, modifiers: [])
 
-            Button {
-                let output = detector.ghostedText
-                onApply(output)
-                copied = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    copied = false
+            if editorMode == .rehydrate {
+                Button {
+                    ClipboardManager.shared.writeText(rehydrateOutput)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: copied ? "checkmark" : "doc.on.clipboard.fill")
+                        Text(copied ? "Copied!" : "Copy Rehydrated")
+                    }
                 }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: copied ? "checkmark" : "doc.on.clipboard.fill")
-                    Text(copied ? "Copied!" : "Copy Safe Text")
+                .buttonStyle(.borderedProminent)
+                .tint(copied ? GhostTheme.green : GhostTheme.purple)
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(rehydrateOutput.isEmpty)
+                .animation(.easeInOut(duration: 0.2), value: copied)
+            } else {
+                Button {
+                    let output = detector.ghostedText
+                    onApply(output)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: copied ? "checkmark" : "doc.on.clipboard.fill")
+                        Text(copied ? "Copied!" : "Copy Safe Text")
+                    }
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(copied ? GhostTheme.green : GhostTheme.purple)
+                .keyboardShortcut(.return, modifiers: .command)
+                .animation(.easeInOut(duration: 0.2), value: copied)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(copied ? GhostTheme.green : GhostTheme.purple)
-            .keyboardShortcut(.return, modifiers: .command)
-            .animation(.easeInOut(duration: 0.2), value: copied)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
@@ -361,7 +596,6 @@ struct PIICategoryRow: View {
     var body: some View {
         Button(action: onToggle) {
             HStack(spacing: 8) {
-                // Color indicator
                 RoundedRectangle(cornerRadius: 3)
                     .fill(GhostTheme.highlightColor(for: type))
                     .frame(width: 16, height: 16)
@@ -397,17 +631,54 @@ struct PIICategoryRow: View {
     }
 }
 
-#Preview {
-    OverlayEditorView(
-        initialText: """
-        Hi, my name is John Smith. Contact me at john.smith@company.com or \
-        call me at +1 (555) 123-4567.
+// MARK: - Rehydrated Text View (highlights replaced tokens)
 
-        My credit card is 4111-1111-1111-1111 and SSN is 123-45-6789.
+struct RehydratedTextView: NSViewRepresentable {
+    let originalText: String
+    let rehydratedText: String
+    let mappings: [GhostMapping]
 
-        Server IP: 192.168.1.100
-        API key: sk-proj1234567890abcdefghij1234567890
-        """,
-        onApply: { print($0) }
-    )
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSTextView.scrollableTextView()
+        let textView = scrollView.documentView as! NSTextView
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.font = GhostTheme.editorFont
+        textView.textContainerInset = NSSize(width: 12, height: 12)
+        textView.backgroundColor = .textBackgroundColor
+        applyStyledText(to: textView)
+        return scrollView
+    }
+
+    func updateNSView(_ nsView: NSScrollView, context: Context) {
+        guard let textView = nsView.documentView as? NSTextView else { return }
+        applyStyledText(to: textView)
+    }
+
+    private func applyStyledText(to textView: NSTextView) {
+        let attributed = NSMutableAttributedString(
+            string: rehydratedText,
+            attributes: [
+                .font: GhostTheme.editorFont,
+                .foregroundColor: NSColor.labelColor,
+            ]
+        )
+
+        // Highlight restored values with a green background
+        for mapping in mappings {
+            let value = mapping.originalValue
+            var searchRange = rehydratedText.startIndex..<rehydratedText.endIndex
+            while let range = rehydratedText.range(of: value, range: searchRange) {
+                let nsRange = NSRange(range, in: rehydratedText)
+                attributed.addAttributes([
+                    .backgroundColor: NSColor.systemGreen.withAlphaComponent(0.2),
+                    .underlineStyle: NSUnderlineStyle.single.rawValue,
+                    .underlineColor: NSColor.systemGreen.withAlphaComponent(0.5),
+                ], range: nsRange)
+                searchRange = range.upperBound..<rehydratedText.endIndex
+            }
+        }
+
+        textView.textStorage?.setAttributedString(attributed)
+    }
 }

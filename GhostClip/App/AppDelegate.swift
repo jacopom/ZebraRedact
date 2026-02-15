@@ -1,33 +1,46 @@
 import AppKit
 import SwiftUI
 
-/// AppDelegate manages the menu bar status item, global hotkey, and overlay lifecycle.
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var statusItem: NSStatusItem?
+    private var statusItem: NSStatusItem!
     private var overlayPanel: OverlayPanel?
+    private var onboardingWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBarItem()
         registerHotkey()
+        showOnboardingIfNeeded()
     }
 
     // MARK: - Menu Bar
 
     private func setupMenuBarItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
-        if let button = statusItem?.button {
+        if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "theatermasks.fill", accessibilityDescription: "GhostClip")
-            button.image?.size = NSSize(width: 18, height: 18)
+            button.image?.size = NSSize(width: 16, height: 16)
+            button.image?.isTemplate = true
         }
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Open GhostClip (⌥⌘G)", action: #selector(triggerOverlay), keyEquivalent: ""))
+
+        let openItem = NSMenuItem(title: "Ghost Clipboard   ⌥⌘G", action: #selector(triggerOverlay), keyEquivalent: "")
+        openItem.target = self
+        menu.addItem(openItem)
+
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ","))
+
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit GhostClip", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        statusItem?.menu = menu
+
+        let quitItem = NSMenuItem(title: "Quit GhostClip", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(quitItem)
+
+        statusItem.menu = menu
     }
 
     // MARK: - Hotkey
@@ -40,17 +53,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // MARK: - Onboarding
+
+    private func showOnboardingIfNeeded() {
+        let complete = UserDefaults.standard.bool(forKey: GhostClipConstants.StorageKeys.onboardingComplete)
+        guard !complete else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.showOnboarding()
+        }
+    }
+
+    private func showOnboarding() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 580, height: 460),
+            styleMask: [.titled, .closable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = ""
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.contentView = NSHostingView(rootView: OnboardingView())
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.onboardingWindow = window
+    }
+
     // MARK: - Overlay
 
     @objc func triggerOverlay() {
-        // If panel is visible, dismiss it
         if let panel = overlayPanel, panel.isVisible {
             panel.dismissOverlay()
             overlayPanel = nil
             return
         }
 
-        // Capture text from clipboard or selection
         ClipboardManager.shared.captureSelection { [weak self] text in
             let inputText = text ?? ""
             self?.showOverlayEditor(with: inputText)
@@ -72,16 +111,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         NSApp.activate(ignoringOtherApps: true)
-
-        let settingsWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 450),
-            styleMask: [.titled, .closable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        settingsWindow.title = "GhostClip Settings"
-        settingsWindow.contentView = NSHostingView(rootView: SettingsView())
-        settingsWindow.center()
-        settingsWindow.makeKeyAndOrderFront(nil)
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 }

@@ -1,46 +1,33 @@
 import SwiftUI
 
-/// The main editor overlay: split-pane with Original (left), Toolbar (center), Ghosted Preview (right).
 struct OverlayEditorView: View {
     @StateObject private var detector = PIIDetector()
-    @State private var originalText = ""
-    @State private var showSettings = false
-    @Environment(\.dismiss) private var dismiss
+    @State private var originalText: String
+    @State private var showGhosted = false
+    @State private var copied = false
+    @State private var hoveredType: PIIType?
 
     let initialText: String
     let onApply: (String) -> Void
 
+    init(initialText: String, onApply: @escaping (String) -> Void) {
+        self.initialText = initialText
+        self.onApply = onApply
+        _originalText = State(initialValue: initialText)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: - Header
             headerBar
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-
-            Divider().padding(.top, 8)
-
-            // MARK: - Editor Panes
-            HStack(spacing: 0) {
-                // Left: Original text
-                originalPane
-                    .frame(maxWidth: .infinity)
-
-                // Center: Toolbar
-                toolbarPane
-                    .frame(width: 160)
-
-                // Right: Ghosted preview
-                previewPane
-                    .frame(maxWidth: .infinity)
-            }
-            .padding(16)
-
             Divider()
-
-            // MARK: - Footer
+            HStack(spacing: 0) {
+                editorArea
+                Divider()
+                sidebar
+                    .frame(width: 240)
+            }
+            Divider()
             footerBar
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
         }
         .frame(
             minWidth: GhostClipConstants.Overlay.minWidth,
@@ -48,7 +35,6 @@ struct OverlayEditorView: View {
         )
         .background(GhostTheme.panelBackground)
         .onAppear {
-            originalText = initialText
             detector.scan(text: originalText)
         }
     }
@@ -56,117 +42,207 @@ struct OverlayEditorView: View {
     // MARK: - Header
 
     private var headerBar: some View {
-        HStack {
-            HStack(spacing: 8) {
-                Image(systemName: "theatermasks.fill")
-                    .foregroundStyle(GhostTheme.purple)
-                    .font(.title2)
-                Text("GhostClip")
-                    .font(GhostTheme.titleFont)
-                    .foregroundStyle(GhostTheme.purple)
-            }
+        HStack(spacing: 12) {
+            Image(systemName: "theatermasks.fill")
+                .font(.title2)
+                .foregroundStyle(GhostTheme.purple)
+
+            Text("GhostClip")
+                .font(GhostTheme.titleFont)
+                .foregroundStyle(GhostTheme.purple)
 
             Spacer()
 
-            GhostScoreBadge(score: detector.privacyScore, method: detector.detectionMethod)
-
-            Button {
-                showSettings.toggle()
-            } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.title3)
+            // View toggle
+            Picker("View", selection: $showGhosted) {
+                Text("Highlight").tag(false)
+                Text("Preview").tag(true)
             }
-            .buttonStyle(.borderless)
-            .popover(isPresented: $showSettings) {
-                SettingsView()
-                    .frame(width: 400, height: 500)
+            .pickerStyle(.segmented)
+            .frame(width: 180)
+
+            GhostScoreBadge(score: detector.privacyScore, method: detector.detectionMethod)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    // MARK: - Editor Area
+
+    private var editorArea: some View {
+        ZStack {
+            if showGhosted {
+                GhostedPreviewView(text: detector.ghostedText)
+            } else if originalText.isEmpty {
+                emptyState
+            } else {
+                HighlightedTextView(
+                    text: $originalText,
+                    piiItems: detector.detectedItems,
+                    isEditable: true,
+                    onTextChange: { newText in
+                        detector.scan(text: newText)
+                    }
+                )
             }
         }
     }
 
-    // MARK: - Original Pane
-
-    private var originalPane: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Original")
-                .font(GhostTheme.headlineFont)
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "text.cursor")
+                .font(.system(size: 40))
+                .foregroundStyle(GhostTheme.tertiaryText)
+            Text("Paste or type text to scan for PII")
+                .font(.title3)
                 .foregroundStyle(GhostTheme.secondaryText)
 
-            ZStack(alignment: .topLeading) {
-                TextEditor(text: $originalText)
-                    .font(GhostTheme.codeFont)
-                    .scrollContentBackground(.hidden)
-                    .background(GhostTheme.editorBackground)
-                    .border(Color.gray.opacity(0.2), width: 1)
-                    .onChange(of: originalText) {
+            HStack(spacing: 12) {
+                Button {
+                    if let clip = ClipboardManager.shared.readText(), !clip.isEmpty {
+                        originalText = clip
                         detector.scan(text: originalText)
                     }
+                } label: {
+                    Label("Paste Clipboard", systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(GhostTheme.purple)
 
-                // PII highlight overlays
-                highlightOverlay
+                Button("Try Sample Text") {
+                    originalText = sampleText
+                    detector.scan(text: originalText)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private let sampleText = """
+    Hi team, please update the account for John Smith.
+
+    Email: john.smith@acme-corp.com
+    Phone: +1 (555) 867-5309
+    Credit Card: 4111-1111-1111-1111
+    SSN: 123-45-6789
+    Server: 192.168.1.100
+
+    API Key: sk-proj1234567890abcdefghij1234567890
+
+    Thanks,
+    Sarah
+    """
+
+    // MARK: - Sidebar (Hemingway-style stats)
+
+    private var sidebar: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Score
+                sidebarScore
+
+                Divider()
+
+                // PII breakdown
+                sidebarPIIBreakdown
+
+                Divider()
+
+                // Quick actions
+                sidebarActions
+
+                Spacer()
+
+                // Help text
+                sidebarHelp
+            }
+            .padding(16)
+        }
+        .background(GhostTheme.sidebarBackground)
+    }
+
+    private var sidebarScore: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Privacy Score")
+                .font(.caption.bold())
+                .foregroundStyle(GhostTheme.secondaryText)
+                .textCase(.uppercase)
+                .tracking(0.5)
+
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(detector.privacyScore)%")
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundStyle(GhostTheme.scoreColor(for: detector.privacyScore))
+
+                Text(scoreLabel)
+                    .font(.caption.bold())
+                    .foregroundStyle(GhostTheme.scoreColor(for: detector.privacyScore))
             }
 
-            Text("\(detector.detectedItems.count) PII item(s) detected")
+            Text("\(detector.detectedItems.filter(\.isMasked).count) of \(detector.detectedItems.count) items ghosted")
                 .font(.caption)
                 .foregroundStyle(GhostTheme.secondaryText)
         }
     }
 
-    // MARK: - Highlight Overlay (simplified)
+    private var scoreLabel: String {
+        switch detector.privacyScore {
+        case 100:     return "Clean"
+        case 90..<100: return "Safe"
+        case 70..<90:  return "Caution"
+        default:       return "Unsafe"
+        }
+    }
 
-    private var highlightOverlay: some View {
-        // PII items listed as chips below the editor
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
-                ForEach(detector.detectedItems) { item in
-                    Button {
-                        detector.toggleItem(item)
-                        detector.remask(originalText: originalText)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: item.type.icon)
-                                .font(.caption2)
-                            Text(item.originalText.prefix(20) + (item.originalText.count > 20 ? "..." : ""))
-                                .font(.caption2)
-                                .lineLimit(1)
+    private var sidebarPIIBreakdown: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Detected PII")
+                .font(.caption.bold())
+                .foregroundStyle(GhostTheme.secondaryText)
+                .textCase(.uppercase)
+                .tracking(0.5)
+
+            if detector.detectedItems.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(GhostTheme.green)
+                    Text("No PII detected")
+                        .font(.callout)
+                        .foregroundStyle(GhostTheme.secondaryText)
+                }
+                .padding(.vertical, 4)
+            } else {
+                ForEach(piiGrouped, id: \.type) { group in
+                    PIICategoryRow(
+                        type: group.type,
+                        count: group.count,
+                        maskedCount: group.maskedCount,
+                        isHovered: hoveredType == group.type,
+                        onToggle: {
+                            toggleAllOfType(group.type)
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(
-                            item.isMasked
-                                ? GhostTheme.red.opacity(0.2)
-                                : Color.gray.opacity(0.1)
-                        )
-                        .clipShape(Capsule())
+                    )
+                    .onHover { isHovered in
+                        hoveredType = isHovered ? group.type : nil
                     }
-                    .buttonStyle(.plain)
-                    .help(item.isMasked ? "\(item.type.rawValue) – Click to unmask" : "\(item.type.rawValue) – Click to mask")
                 }
             }
         }
-        .padding(.top, 4)
-        .allowsHitTesting(true)
-        .frame(maxWidth: .infinity, maxHeight: 30, alignment: .topLeading)
-        .offset(y: -30) // position above editor
-        .opacity(detector.detectedItems.isEmpty ? 0 : 1)
     }
 
-    // MARK: - Toolbar Pane
-
-    private var toolbarPane: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
+    private var sidebarActions: some View {
+        VStack(spacing: 8) {
             Button {
                 detector.maskAll()
                 detector.remask(originalText: originalText)
             } label: {
-                Label("Ghost All", systemImage: "theatermasks.fill")
+                Label("Ghost All PII", systemImage: "eye.slash.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(GhostTheme.purple)
-            .controlSize(.large)
+            .controlSize(.regular)
 
             Button {
                 detector.unmaskAll()
@@ -178,55 +254,31 @@ struct OverlayEditorView: View {
             .buttonStyle(.bordered)
             .controlSize(.regular)
 
-            Divider()
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Detected")
-                    .font(.caption.bold())
-                    .foregroundStyle(GhostTheme.secondaryText)
-
-                ForEach(PIIType.allCases) { type in
-                    let count = detector.detectedItems.filter { $0.type == type }.count
-                    if count > 0 {
-                        HStack {
-                            Image(systemName: type.icon)
-                                .font(.caption2)
-                                .frame(width: 14)
-                            Text("\(type.rawValue): \(count)")
-                                .font(.caption)
-                        }
-                        .foregroundStyle(GhostTheme.primaryText)
-                    }
+            Button {
+                if let clipText = ClipboardManager.shared.readText(), !clipText.isEmpty {
+                    originalText = clipText
+                    detector.scan(text: originalText)
                 }
+            } label: {
+                Label("Paste from Clipboard", systemImage: "doc.on.clipboard")
+                    .frame(maxWidth: .infinity)
             }
-
-            Spacer()
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
         }
-        .padding(.horizontal, 8)
     }
 
-    // MARK: - Preview Pane
-
-    private var previewPane: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Ghosted Preview")
-                .font(GhostTheme.headlineFont)
-                .foregroundStyle(GhostTheme.secondaryText)
-
-            ScrollView {
-                Text(detector.ghostedText)
-                    .font(GhostTheme.codeFont)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .padding(8)
-            }
-            .background(GhostTheme.editorBackground)
-            .border(Color.gray.opacity(0.2), width: 1)
-
-            Text("Note: [GHOST_X] tokens are safe to share. No inference possible.")
+    private var sidebarHelp: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Highlighted text contains PII.")
                 .font(.caption)
                 .foregroundStyle(GhostTheme.secondaryText)
-                .italic()
+            Text("Click a category to toggle ghosting.")
+                .font(.caption)
+                .foregroundStyle(GhostTheme.secondaryText)
+            Text("Switch to Preview to see safe output.")
+                .font(.caption)
+                .foregroundStyle(GhostTheme.secondaryText)
         }
     }
 
@@ -234,29 +286,128 @@ struct OverlayEditorView: View {
 
     private var footerBar: some View {
         HStack {
-            Button("Cancel") {
-                dismiss()
-            }
-            .keyboardShortcut(.escape, modifiers: [])
+            // Character count
+            Text("\(originalText.count) chars · \(originalText.split(separator: " ").count) words")
+                .font(.caption)
+                .foregroundStyle(GhostTheme.tertiaryText)
 
             Spacer()
 
+            Button("Cancel") {
+                NSApp.keyWindow?.close()
+            }
+            .keyboardShortcut(.escape, modifiers: [])
+
             Button {
-                onApply(detector.ghostedText)
-                dismiss()
+                let output = detector.ghostedText
+                onApply(output)
+                copied = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    copied = false
+                }
             } label: {
-                Label("Copy Safe Text", systemImage: "doc.on.clipboard.fill")
+                HStack(spacing: 4) {
+                    Image(systemName: copied ? "checkmark" : "doc.on.clipboard.fill")
+                    Text(copied ? "Copied!" : "Copy Safe Text")
+                }
             }
             .buttonStyle(.borderedProminent)
-            .tint(GhostTheme.purple)
+            .tint(copied ? GhostTheme.green : GhostTheme.purple)
             .keyboardShortcut(.return, modifiers: .command)
+            .animation(.easeInOut(duration: 0.2), value: copied)
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+    }
+
+    // MARK: - Helpers
+
+    private struct PIIGroup {
+        let type: PIIType
+        let count: Int
+        let maskedCount: Int
+    }
+
+    private var piiGrouped: [PIIGroup] {
+        var groups: [PIIType: (total: Int, masked: Int)] = [:]
+        for item in detector.detectedItems {
+            let current = groups[item.type, default: (0, 0)]
+            groups[item.type] = (current.total + 1, current.masked + (item.isMasked ? 1 : 0))
+        }
+        return groups.map { PIIGroup(type: $0.key, count: $0.value.total, maskedCount: $0.value.masked) }
+            .sorted { $0.count > $1.count }
+    }
+
+    private func toggleAllOfType(_ type: PIIType) {
+        let allMasked = detector.detectedItems.filter { $0.type == type }.allSatisfy(\.isMasked)
+        for i in detector.detectedItems.indices where detector.detectedItems[i].type == type {
+            detector.detectedItems[i].isMasked = !allMasked
+        }
+        detector.remask(originalText: originalText)
+    }
+}
+
+// MARK: - PII Category Row
+
+struct PIICategoryRow: View {
+    let type: PIIType
+    let count: Int
+    let maskedCount: Int
+    let isHovered: Bool
+    let onToggle: () -> Void
+
+    private var allMasked: Bool { maskedCount == count }
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 8) {
+                // Color indicator
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(GhostTheme.highlightColor(for: type))
+                    .frame(width: 16, height: 16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 3)
+                            .strokeBorder(GhostTheme.legendColor(for: type), lineWidth: 1)
+                    )
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(count) \(type.rawValue)\(count > 1 ? "s" : "")")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(GhostTheme.primaryText)
+
+                    Text(allMasked ? "ghosted" : "\(maskedCount)/\(count) ghosted")
+                        .font(.caption2)
+                        .foregroundStyle(GhostTheme.secondaryText)
+                }
+
+                Spacer()
+
+                Image(systemName: allMasked ? "eye.slash.fill" : "eye.fill")
+                    .font(.caption)
+                    .foregroundStyle(allMasked ? GhostTheme.purple : GhostTheme.tertiaryText)
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isHovered ? GhostTheme.highlightColor(for: type).opacity(0.3) : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
 #Preview {
     OverlayEditorView(
-        initialText: "Contact me at john@example.com or call 555-123-4567. API key: sk-proj1234567890abcdefghij",
+        initialText: """
+        Hi, my name is John Smith. Contact me at john.smith@company.com or \
+        call me at +1 (555) 123-4567.
+
+        My credit card is 4111-1111-1111-1111 and SSN is 123-45-6789.
+
+        Server IP: 192.168.1.100
+        API key: sk-proj1234567890abcdefghij1234567890
+        """,
         onApply: { print($0) }
     )
 }

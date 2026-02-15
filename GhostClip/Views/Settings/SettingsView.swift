@@ -1,113 +1,105 @@
 import SwiftUI
 
-/// Settings sheet accessible from the overlay gear icon or ⌘,.
 struct SettingsView: View {
-    @AppStorage(GhostClipConstants.StorageKeys.onboardingComplete) private var onboardingComplete = true
-    @AppStorage(GhostClipConstants.StorageKeys.isPro) private var isPro = false
-    @AppStorage(GhostClipConstants.StorageKeys.showMenuBarIcon) private var showMenuBarIcon = true
+    var body: some View {
+        TabView {
+            GeneralSettingsTab()
+                .tabItem {
+                    Label("General", systemImage: "gearshape")
+                }
 
-    @State private var selectedTab: SettingsTab = .general
+            DetectionSettingsTab()
+                .tabItem {
+                    Label("Detection", systemImage: "eye.trianglebadge.exclamationmark")
+                }
 
-    enum SettingsTab: String, CaseIterable, Identifiable {
-        case general = "General"
-        case models = "Models"
-        case vault = "Vault"
-        case about = "About"
-
-        var id: String { rawValue }
-
-        var icon: String {
-            switch self {
-            case .general: return "gearshape"
-            case .models: return "cpu"
-            case .vault: return "lock.shield"
-            case .about: return "info.circle"
-            }
+            AboutSettingsTab()
+                .tabItem {
+                    Label("About", systemImage: "info.circle")
+                }
         }
+        .frame(width: 480, height: 400)
     }
+}
+
+// MARK: - General
+
+struct GeneralSettingsTab: View {
+    @AppStorage(GhostClipConstants.StorageKeys.onboardingComplete) private var onboardingComplete = true
 
     var body: some View {
-        NavigationSplitView {
-            List(SettingsTab.allCases, selection: $selectedTab) { tab in
-                Label(tab.rawValue, systemImage: tab.icon)
-                    .tag(tab)
-            }
-            .listStyle(.sidebar)
-            .frame(minWidth: 140)
-        } detail: {
-            ScrollView {
-                switch selectedTab {
-                case .general:
-                    generalSettings
-                case .models:
-                    ModelManagementView()
-                case .vault:
-                    VaultView()
-                case .about:
-                    aboutSection
-                }
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .frame(minWidth: 600, minHeight: 450)
-    }
-
-    // MARK: - General
-
-    private var generalSettings: some View {
         Form {
-            Section("Hotkeys") {
-                LabeledContent("Summon GhostClip", value: GhostClipConstants.Hotkeys.ghostTrigger)
-                LabeledContent("Apply", value: GhostClipConstants.Hotkeys.applyShortcut)
-                LabeledContent("Cancel", value: GhostClipConstants.Hotkeys.cancelShortcut)
-            }
-
-            Section("Display") {
-                Toggle("Show Menu Bar Icon", isOn: $showMenuBarIcon)
+            Section("Keyboard Shortcuts") {
+                LabeledContent("Summon GhostClip", value: "⌥⌘G")
+                LabeledContent("Apply & Copy", value: "⌘Return")
+                LabeledContent("Dismiss", value: "Escape")
             }
 
             Section("Onboarding") {
                 HStack {
-                    Text("Re-show onboarding on next launch")
+                    Text("Show welcome screen on next launch")
                     Spacer()
                     Button("Reset") {
                         onboardingComplete = false
                     }
                     .buttonStyle(.bordered)
-                }
-            }
-
-            Section("Upgrade") {
-                if isPro {
-                    Label("Pro Unlocked", systemImage: "checkmark.seal.fill")
-                        .foregroundStyle(GhostTheme.green)
-                } else {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("Unlock Pro")
-                                .font(.headline)
-                            Text("MLX AI detection + Vault + Priority support")
-                                .font(.caption)
-                                .foregroundStyle(GhostTheme.secondaryText)
-                        }
-                        Spacer()
-                        Button("€19 – Upgrade") {
-                            // IAP trigger placeholder
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(GhostTheme.purple)
-                    }
+                    .controlSize(.small)
                 }
             }
         }
         .formStyle(.grouped)
-        .padding()
+        .padding(.horizontal)
     }
+}
 
-    // MARK: - About
+// MARK: - Detection
 
-    private var aboutSection: some View {
+struct DetectionSettingsTab: View {
+    @AppStorage("detect_email") private var detectEmail = true
+    @AppStorage("detect_phone") private var detectPhone = true
+    @AppStorage("detect_creditCard") private var detectCreditCard = true
+    @AppStorage("detect_ssn") private var detectSSN = true
+    @AppStorage("detect_ipAddress") private var detectIP = true
+    @AppStorage("detect_apiKey") private var detectAPIKey = true
+
+    var body: some View {
+        Form {
+            Section("PII Categories to Detect") {
+                Toggle("Emails", isOn: $detectEmail)
+                Toggle("Phone Numbers", isOn: $detectPhone)
+                Toggle("Credit Cards", isOn: $detectCreditCard)
+                Toggle("Social Security Numbers", isOn: $detectSSN)
+                Toggle("IP Addresses", isOn: $detectIP)
+                Toggle("API Keys & Tokens", isOn: $detectAPIKey)
+            }
+
+            Section("Detection Engine") {
+                HStack {
+                    Image(systemName: "cpu")
+                        .foregroundStyle(GhostTheme.purple)
+                    Text("Regex-based (local, instant)")
+                    Spacer()
+                    Text("Active")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(GhostTheme.green.opacity(0.2))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - About
+
+struct AboutSettingsTab: View {
+    var body: some View {
         VStack(spacing: 16) {
+            Spacer()
+
             Image(systemName: "theatermasks.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(GhostTheme.purple)
@@ -115,21 +107,27 @@ struct SettingsView: View {
             Text("GhostClip")
                 .font(.title.bold())
 
-            Text("v1.0.0")
+            Text("Version 1.0.0")
                 .font(.caption)
                 .foregroundStyle(GhostTheme.secondaryText)
 
             Text("Local PII masking for LLM prompts.\nYour data never leaves your Mac.")
                 .multilineTextAlignment(.center)
-                .font(.body)
                 .foregroundStyle(GhostTheme.secondaryText)
 
-            Divider()
+            Spacer()
 
-            Link("Privacy Policy", destination: URL(string: "https://ghostclip.app/privacy")!)
-                .font(.caption)
+            HStack(spacing: 20) {
+                Link("Privacy Policy", destination: URL(string: "https://ghostclip.app/privacy")!)
+                Text("·").foregroundStyle(GhostTheme.secondaryText)
+                Link("GitHub", destination: URL(string: "https://github.com/ghostclip")!)
+            }
+            .font(.caption)
+
+            Spacer()
         }
-        .padding(40)
+        .frame(maxWidth: .infinity)
+        .padding()
     }
 }
 

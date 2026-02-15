@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// Pro-only view for managing MLX PII detection models.
 struct ModelManagementView: View {
     @StateObject private var modelManager = ModelManager()
     @State private var testResult: String?
@@ -8,55 +7,37 @@ struct ModelManagementView: View {
     @State private var modelToUninstall: MLXModelInfo?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header
-            HStack {
-                Image(systemName: "cpu.fill")
-                    .foregroundStyle(GhostTheme.purple)
-                Text("MLX Detector (Pro)")
-                    .font(GhostTheme.headlineFont)
-            }
-
-            Divider()
-
-            // Model List
-            Text("Available Models")
-                .font(.subheadline.bold())
-                .foregroundStyle(GhostTheme.secondaryText)
-
-            ForEach(modelManager.models) { model in
-                modelRow(model)
-            }
-
-            Divider()
-
-            // Active Model
-            if let activeID = modelManager.activeModelID,
-               let active = modelManager.models.first(where: { $0.id == activeID }) {
-                HStack {
-                    Text("Active Model:")
-                        .font(.caption.bold())
-                    Text(active.displayName)
-                        .font(.caption)
-                        .foregroundStyle(GhostTheme.purple)
+        Form {
+            Section("MLX Detection Models") {
+                ForEach(modelManager.models) { model in
+                    modelRow(model)
                 }
             }
 
-            // Test Button
-            Button("Test on Sample Text") {
-                testResult = modelManager.testModel(
-                    on: "Contact john@test.com at 555-123-4567, card 4111-1111-1111-1111"
-                )
+            if let activeID = modelManager.activeModelID,
+               let active = modelManager.models.first(where: { $0.id == activeID }) {
+                Section("Active Model") {
+                    LabeledContent("Model", value: active.displayName)
+                    LabeledContent("Accuracy", value: "\(active.accuracy)%")
+                }
             }
-            .buttonStyle(.bordered)
 
-            if let result = testResult {
-                Text(result)
-                    .font(.caption)
-                    .foregroundStyle(GhostTheme.green)
+            Section("Test") {
+                Button("Run Test on Sample Text") {
+                    testResult = modelManager.testModel(
+                        on: "Email john@test.com, call 555-123-4567, card 4111-1111-1111-1111"
+                    )
+                }
+
+                if let result = testResult {
+                    Text(result)
+                        .font(.caption)
+                        .foregroundStyle(GhostTheme.green)
+                }
             }
         }
-        .padding()
+        .formStyle(.grouped)
+        .padding(.horizontal)
         .alert("Remove Model?", isPresented: $showUninstallAlert) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -66,7 +47,7 @@ struct ModelManagementView: View {
             }
         } message: {
             if let model = modelToUninstall {
-                Text("Delete \(model.sizeFormatted)? Fallback to regex.")
+                Text("Delete \(model.sizeFormatted)? Detection will fall back to regex.")
             }
         }
     }
@@ -77,15 +58,16 @@ struct ModelManagementView: View {
 
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                HStack {
+                HStack(spacing: 6) {
                     Text(model.displayName)
                         .font(.body.bold())
                     if model.isRecommended {
                         Text("Recommended")
                             .font(.caption2)
                             .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(GhostTheme.purple.opacity(0.2))
+                            .padding(.vertical, 1)
+                            .background(GhostTheme.purple.opacity(0.15))
+                            .foregroundStyle(GhostTheme.purple)
                             .clipShape(Capsule())
                     }
                 }
@@ -98,7 +80,7 @@ struct ModelManagementView: View {
 
             switch state {
             case .notInstalled:
-                Button("Install") {
+                Button("Download") {
                     Task { await modelManager.installModel(model) }
                 }
                 .buttonStyle(.borderedProminent)
@@ -106,11 +88,12 @@ struct ModelManagementView: View {
                 .controlSize(.small)
 
             case .downloading(let progress):
-                VStack {
+                VStack(spacing: 2) {
                     ProgressView(value: progress)
                         .frame(width: 80)
                     Text("\(Int(progress * 100))%")
                         .font(.caption2)
+                        .foregroundStyle(GhostTheme.secondaryText)
                 }
 
             case .installing:
@@ -118,19 +101,16 @@ struct ModelManagementView: View {
                     .controlSize(.small)
 
             case .installed:
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     if modelManager.activeModelID != model.id {
-                        Button("Use") {
-                            modelManager.switchToModel(model)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        Button("Use") { modelManager.switchToModel(model) }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                     } else {
                         Text("Active")
-                            .font(.caption)
+                            .font(.caption.bold())
                             .foregroundStyle(GhostTheme.green)
                     }
-
                     Button {
                         modelToUninstall = model
                         showUninstallAlert = true
@@ -142,22 +122,12 @@ struct ModelManagementView: View {
                 }
 
             case .failed(let msg):
-                VStack(alignment: .trailing) {
-                    Text(msg)
-                        .font(.caption2)
-                        .foregroundStyle(GhostTheme.red)
-                    Button("Retry") {
-                        Task { await modelManager.installModel(model) }
-                    }
-                    .controlSize(.small)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(msg).font(.caption2).foregroundStyle(GhostTheme.red).lineLimit(1)
+                    Button("Retry") { Task { await modelManager.installModel(model) } }
+                        .controlSize(.small)
                 }
             }
         }
-        .padding(.vertical, 4)
     }
-}
-
-#Preview {
-    ModelManagementView()
-        .frame(width: 400)
 }

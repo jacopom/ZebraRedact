@@ -1,20 +1,15 @@
 import Foundation
 import Combine
 
-/// Facade that routes PII detection to either Regex (Free) or MLX (Pro).
 @MainActor
 final class PIIDetector: ObservableObject {
     @Published var detectedItems: [PIIItem] = []
     @Published var ghostedText: String = ""
     @Published var privacyScore: Int = 100
     @Published var isProcessing: Bool = false
+    @Published var enabledCategories: Set<PIIType> = Set(PIIType.allCases)
 
     private let regexDetector = RegexDetector()
-    private let isPro: Bool
-
-    init(isPro: Bool = false) {
-        self.isPro = isPro
-    }
 
     // MARK: - Scan
 
@@ -22,10 +17,11 @@ final class PIIDetector: ObservableObject {
         isProcessing = true
         defer { isProcessing = false }
 
-        // Use regex detector (MLX would be used in Pro if model is installed)
-        detectedItems = regexDetector.detect(in: text)
+        let allItems = regexDetector.detect(in: text)
+        // Filter by enabled categories
+        detectedItems = allItems.filter { enabledCategories.contains($0.type) }
         ghostedText = regexDetector.mask(text: text, items: detectedItems)
-        privacyScore = calculateScore(original: text, items: detectedItems)
+        privacyScore = calculateScore(items: detectedItems)
     }
 
     // MARK: - Toggle Individual Items
@@ -39,7 +35,7 @@ final class PIIDetector: ObservableObject {
 
     func remask(originalText: String) {
         ghostedText = regexDetector.mask(text: originalText, items: detectedItems)
-        privacyScore = calculateScore(original: originalText, items: detectedItems)
+        privacyScore = calculateScore(items: detectedItems)
     }
 
     // MARK: - Mask All / Unmask All
@@ -56,16 +52,24 @@ final class PIIDetector: ObservableObject {
         }
     }
 
+    // MARK: - Category Management
+
+    func toggleCategory(_ type: PIIType) {
+        if enabledCategories.contains(type) {
+            enabledCategories.remove(type)
+        } else {
+            enabledCategories.insert(type)
+        }
+    }
+
     // MARK: - Score
 
-    private func calculateScore(original: String, items: [PIIItem]) -> Int {
+    private func calculateScore(items: [PIIItem]) -> Int {
         guard !items.isEmpty else { return 100 }
         let maskedCount = items.filter(\.isMasked).count
         let ratio = Double(maskedCount) / Double(items.count)
         return Int(ratio * 100)
     }
 
-    var detectionMethod: String {
-        isPro ? "MLX" : "Regex"
-    }
+    var detectionMethod: String { "Regex" }
 }

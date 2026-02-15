@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var overlayPanel: OverlayPanel?
     private var onboardingWindow: NSWindow?
+    private var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBarItem()
@@ -109,8 +110,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // MARK: - Settings
+
     @objc private func openSettings() {
+        // If settings window already exists and is visible, just bring it front
+        if let window = settingsWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 400),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "GhostClip Settings"
+        window.contentView = NSHostingView(rootView: SettingsView())
+        window.center()
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        self.settingsWindow = window
     }
 }

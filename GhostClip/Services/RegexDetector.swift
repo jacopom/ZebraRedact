@@ -2,6 +2,8 @@ import Foundation
 
 /// Regex-based PII detector (Free tier). Detects common PII patterns.
 final class RegexDetector {
+    let name = "Regex"
+    let isAvailable = true
 
     // MARK: - Pattern Definitions
 
@@ -38,10 +40,17 @@ final class RegexDetector {
             for match in matches {
                 guard let swiftRange = Range(match.range, in: text) else { continue }
                 let matchedText = String(text[swiftRange])
+
+                // Generate alternatives for this PII type
+                let alternatives = PIIItem.generateAlternatives(for: type, original: matchedText)
+                let selectedId = alternatives.first?.id ?? UUID()
+
                 let item = PIIItem(
                     type: type,
                     range: swiftRange,
                     originalText: matchedText,
+                    alternatives: alternatives,
+                    selectedAlternativeId: selectedId,
                     confidence: 1.0,
                     isMasked: true
                 )

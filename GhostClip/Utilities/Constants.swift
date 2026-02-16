@@ -12,6 +12,8 @@ enum GhostClipConstants {
         static let isPro = "isPro"
         static let useMLXDetection = "useMLXDetection"
         static let showMenuBarIcon = "showMenuBarIcon"
+        static let showInDock = "showInDock"
+        static let detectionEngine = "detectionEngine"  // "regex" or "nltagger" or "mlx"
     }
 
     // MARK: - Hotkeys

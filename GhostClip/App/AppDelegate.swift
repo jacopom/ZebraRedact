@@ -112,7 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Settings
 
-    @objc private func openSettings() {
+    @objc func openSettings() {
         // If settings window already exists and is visible, just bring it front
         if let window = settingsWindow, window.isVisible {
             window.makeKeyAndOrderFront(nil)
@@ -133,4 +133,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         self.settingsWindow = window
     }
+
 }

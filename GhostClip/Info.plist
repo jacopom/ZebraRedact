@@ -20,8 +20,6 @@
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
-	<key>LSUIElement</key>
-	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>GhostClip uses biometric authentication to protect your Vault.</string>
 	<key>NSHumanReadableCopyright</key>

@@ -9,7 +9,42 @@ final class PIIDetector: ObservableObject {
     @Published var isProcessing: Bool = false
     @Published var enabledCategories: Set<PIIType> = Set(PIIType.allCases)
 
-    private let regexDetector = RegexDetector()
+    private let detector = NLTaggerDetector()
+
+    /// Computed confidence assessment
+    var confidenceAssessment: ConfidenceAssessment? {
+        guard !detectedItems.isEmpty else { return nil }
+
+        // Simple heuristic: more redactions = lower confidence
+        let wordCount = max(1.0, Double(ghostedText.split(separator: " ").count))
+        let redactionRatio = Double(detectedItems.count) / wordCount
+
+        let taskCompletability = max(20, 100 - Int(redactionRatio * 200))
+        let hallucinationRisk = min(80, Int(redactionRatio * 150))
+        let coherence = max(30, 100 - Int(redactionRatio * 180))
+
+        return ConfidenceAssessment(
+            taskCompletability: taskCompletability,
+            hallucinationRisk: hallucinationRisk,
+            coherence: coherence
+        )
+    }
+
+    /// Issues that might affect confidence
+    var confidenceIssues: [ConfidenceIssue] {
+        guard let assessment = confidenceAssessment, assessment.status != .ready else {
+            return []
+        }
+
+        // Generate issues for problematic items
+        return detectedItems.prefix(3).map { item in
+            ConfidenceIssue(
+                item: item,
+                impact: "Removing \(item.type.rawValue) may reduce context",
+                suggestion: "Consider using semantic or partial redaction"
+            )
+        }
+    }
 
     // MARK: - Scan
 
@@ -17,9 +52,16 @@ final class PIIDetector: ObservableObject {
         isProcessing = true
         defer { isProcessing = false }
 
-        let allItems = regexDetector.detect(in: text)
+        let allItems = detector.detect(in: text)
         detectedItems = allItems.filter { enabledCategories.contains($0.type) }
-        ghostedText = regexDetector.mask(text: text, items: detectedItems)
+
+        // Mask text with detected items
+        var result = text
+        for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+            result.replaceSubrange(item.range, with: item.ghostToken)
+        }
+        ghostedText = result
+
         privacyScore = calculateScore(items: detectedItems)
 
         // Save token→original mappings for rehydration
@@ -36,7 +78,11 @@ final class PIIDetector: ObservableObject {
     // MARK: - Re-mask After Toggling
 
     func remask(originalText: String) {
-        ghostedText = regexDetector.mask(text: originalText, items: detectedItems)
+        var result = originalText
+        for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+            result.replaceSubrange(item.range, with: item.ghostToken)
+        }
+        ghostedText = result
         privacyScore = calculateScore(items: detectedItems)
     }
 
@@ -73,5 +119,5 @@ final class PIIDetector: ObservableObject {
         return Int(ratio * 100)
     }
 
-    var detectionMethod: String { "Regex" }
+    var detectionMethod: String { "NLTagger + Regex" }
 }

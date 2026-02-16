@@ -7,29 +7,35 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A100000001 /* GhostClipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000001; };
-		A100000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000002; };
-		A100000003 /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000003; };
-		A100000004 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000004; };
-		A100000005 /* OverlayEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000005; };
-		A100000006 /* GhostScoreBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000006; };
-		A100000007 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000007; };
-		A100000008 /* ModelManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000008; };
-		A100000009 /* VaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000009; };
-		A10000000A /* PIIItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000A; };
-		A10000000B /* MLXModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000B; };
-		A10000000C /* RegexDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000C; };
-		A10000000D /* PIIDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000D; };
-		A10000000E /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000E; };
-		A10000000F /* VaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000F; };
-		A100000010 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000010; };
-		A100000011 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000011; };
-		A100000012 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000012; };
-		A100000013 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000013; };
-		A100000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B100000014; };
-		A100000015 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B100000015; };
-		A100000016 /* HighlightedTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000018; };
-		A100000017 /* GhostMappingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000019; };
+		A100000001 /* GhostClipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000001 /* GhostClipApp.swift */; };
+		A100000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000002 /* AppDelegate.swift */; };
+		A100000003 /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000003 /* OverlayPanel.swift */; };
+		A100000004 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000004 /* OnboardingView.swift */; };
+		A100000005 /* OverlayEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000005 /* OverlayEditorView.swift */; };
+		A100000006 /* GhostScoreBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000006 /* GhostScoreBadge.swift */; };
+		A100000007 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000007 /* SettingsView.swift */; };
+		A100000008 /* ModelManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000008 /* ModelManagementView.swift */; };
+		A100000009 /* VaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000009 /* VaultView.swift */; };
+		A10000000A /* PIIItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000A /* PIIItem.swift */; };
+		A10000000B /* MLXModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000B /* MLXModelInfo.swift */; };
+		A10000000C /* RegexDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000C /* RegexDetector.swift */; };
+		A10000000D /* PIIDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000D /* PIIDetector.swift */; };
+		A10000000E /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000E /* ModelManager.swift */; };
+		A10000000F /* VaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000F /* VaultManager.swift */; };
+		A100000010 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000010 /* HotkeyManager.swift */; };
+		A100000011 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000011 /* ClipboardManager.swift */; };
+		A100000012 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000012 /* Constants.swift */; };
+		A100000013 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000013 /* Theme.swift */; };
+		A100000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B100000014 /* Assets.xcassets */; };
+		A100000015 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B100000015 /* PrivacyInfo.xcprivacy */; };
+		A100000016 /* HighlightedTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000018 /* HighlightedTextView.swift */; };
+		A100000017 /* GhostMappingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000019 /* GhostMappingStore.swift */; };
+		A100000018 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B152F43B6F800AD681A /* MainWindow.swift */; };
+		A100000019 /* ClickableTokenTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B142F43B6F800AD681A /* ClickableTokenTextView.swift */; };
+		A10000001A /* AlternativesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B132F43B6F800AD681A /* AlternativesSheet.swift */; };
+		A10000001B /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B162F43B70700AD681A /* DesignSystem.swift */; };
+		A10000001C /* ConfidenceAssessment.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */; };
+		A10000001D /* NLTaggerDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000001F /* NLTaggerDetector.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,6 +65,12 @@
 		B100000018 /* HighlightedTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedTextView.swift; sourceTree = "<group>"; };
 		B100000019 /* GhostMappingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostMappingStore.swift; sourceTree = "<group>"; };
 		C100000001 /* GhostClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GhostClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EADA2B132F43B6F800AD681A /* AlternativesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlternativesSheet.swift; sourceTree = "<group>"; };
+		EADA2B142F43B6F800AD681A /* ClickableTokenTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickableTokenTextView.swift; sourceTree = "<group>"; };
+		EADA2B152F43B6F800AD681A /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
+		EADA2B162F43B70700AD681A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfidenceAssessment.swift; sourceTree = "<group>"; };
+		B10000001F /* NLTaggerDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NLTaggerDetector.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,9 +84,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		E100000001 /* Root */ = {
+		E100000001 = {
 			isa = PBXGroup;
 			children = (
+				EADA2B132F43B6F800AD681A /* AlternativesSheet.swift */,
+				EADA2B142F43B6F800AD681A /* ClickableTokenTextView.swift */,
+				EADA2B152F43B6F800AD681A /* MainWindow.swift */,
+				EADA2B162F43B70700AD681A /* DesignSystem.swift */,
+				EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */,
 				E100000002 /* GhostClip */,
 				E100000010 /* Products */,
 			);
@@ -156,6 +173,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000C /* RegexDetector.swift */,
+				B10000001F /* NLTaggerDetector.swift */,
 				B10000000D /* PIIDetector.swift */,
 				B10000000E /* ModelManager.swift */,
 				B10000000F /* VaultManager.swift */,
@@ -235,7 +253,7 @@
 				en,
 				Base,
 			);
-			mainGroup = E100000001 /* Root */;
+			mainGroup = E100000001;
 			productRefGroup = E100000010 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -283,6 +301,12 @@
 				A100000013 /* Theme.swift in Sources */,
 				A100000016 /* HighlightedTextView.swift in Sources */,
 				A100000017 /* GhostMappingStore.swift in Sources */,
+				A100000018 /* MainWindow.swift in Sources */,
+				A100000019 /* ClickableTokenTextView.swift in Sources */,
+				A10000001A /* AlternativesSheet.swift in Sources */,
+				A10000001B /* DesignSystem.swift in Sources */,
+				A10000001C /* ConfidenceAssessment.swift in Sources */,
+				A10000001D /* NLTaggerDetector.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -485,7 +509,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = F100000010 /* Project object */;
 }

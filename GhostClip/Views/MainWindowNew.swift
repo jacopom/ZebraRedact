@@ -1,0 +1,492 @@
+import SwiftUI
+
+// MARK: - Simple Token Flow Layout
+
+/// Simple wrapping layout for tokens and text
+struct TokenFlowLayout: Layout {
+    var spacing: CGFloat = 0
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = FlowResult(in: proposal.width ?? 0, subviews: subviews, spacing: spacing)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = FlowResult(in: bounds.width, subviews: subviews, spacing: spacing)
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + result.positions[index].x, y: bounds.minY + result.positions[index].y), proposal: .unspecified)
+        }
+    }
+
+    struct FlowResult {
+        var size: CGSize = .zero
+        var positions: [CGPoint] = []
+
+        init(in maxWidth: CGFloat, subviews: Subviews, spacing: CGFloat) {
+            var x: CGFloat = 0
+            var y: CGFloat = 0
+            var lineHeight: CGFloat = 0
+
+            for subview in subviews {
+                let size = subview.sizeThatFits(.unspecified)
+
+                if x + size.width > maxWidth && x > 0 {
+                    x = 0
+                    y += lineHeight + spacing
+                    lineHeight = 0
+                }
+
+                positions.append(CGPoint(x: x, y: y))
+                lineHeight = max(lineHeight, size.height)
+                x += size.width
+            }
+
+            self.size = CGSize(width: maxWidth, height: y + lineHeight)
+        }
+    }
+}
+
+struct MainWindowNew: View {
+    @StateObject private var detector = PIIDetector()
+    @State private var inputText: String = ""
+    @State private var selectedToken: PIIItem?
+    @State private var showAlternativesPopover = false
+
+    var body: some View {
+        HSplitView {
+            inputPanel.frame(minWidth: 300)
+            outputPanel.frame(minWidth: 300)
+        }
+        .frame(minWidth: 800, minHeight: 600)
+        .background(DesignSystem.Colors.background)
+    }
+
+    // MARK: - Input Panel
+
+    private var inputPanel: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header - same height as output panel
+            panelHeader(
+                title: "Input Text",
+                subtitle: !inputText.isEmpty ? "\(inputText.count) characters" : nil,
+                trailing: {
+                    if !inputText.isEmpty {
+                        Button("Clear") {
+                            inputText = ""
+                            detector.detectedItems = []
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+            )
+
+            Divider()
+
+            // Text input
+            TextEditor(text: $inputText)
+                .font(DesignSystem.Typography.body)
+                .lineSpacing(DesignSystem.Typography.lineSpacing)
+                .padding(DesignSystem.Spacing.sm)
+                .scrollContentBackground(.hidden)
+                .onChange(of: inputText) { _, newValue in
+                    detector.scan(text: newValue)
+                }
+
+            Divider()
+
+            // Footer
+            HStack {
+                HStack(spacing: DesignSystem.Spacing.xs) {
+                    Image(systemName: "character.cursor.ibeam")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.tertiary)
+
+                    Text("\(inputText.count) characters")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.secondary)
+                }
+
+                if !detector.detectedItems.isEmpty {
+                    Circle()
+                        .fill(DesignSystem.Colors.tertiary)
+                        .frame(width: 3, height: 3)
+
+                    HStack(spacing: DesignSystem.Spacing.xs) {
+                        Image(systemName: "eye.fill")
+                            .font(DesignSystem.Typography.caption)
+                            .foregroundColor(DesignSystem.Colors.warning)
+
+                        Text("\(detector.detectedItems.count) PII items")
+                            .font(DesignSystem.Typography.caption)
+                            .foregroundColor(DesignSystem.Colors.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Button {
+                    detector.scan(text: inputText)
+                } label: {
+                    Label("Scan", systemImage: "magnifyingglass")
+                        .font(DesignSystem.Typography.bodyEmphasis)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(inputText.isEmpty)
+            }
+            .padding(DesignSystem.Spacing.lg)
+            .background(DesignSystem.Colors.panel)
+        }
+    }
+
+    // MARK: - Output Panel
+
+    private var outputPanel: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header - same height as input panel
+            panelHeader(
+                title: "Redacted Output",
+                subtitle: !detector.detectedItems.isEmpty ? "\(detector.detectedItems.count) items • \(detector.privacyScore)% privacy" : nil,
+                trailing: {
+                    if !detector.ghostedText.isEmpty {
+                        Button {
+                            copyToClipboard(detector.ghostedText)
+                        } label: {
+                            Label("Copy", systemImage: "doc.on.clipboard")
+                                .font(DesignSystem.Typography.bodyEmphasis)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+                }
+            )
+
+            Divider()
+
+            // Results
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                    if inputText.isEmpty {
+                        emptyState
+                    } else if detector.detectedItems.isEmpty {
+                        noDetectionsState
+                    } else {
+                        detectionsView
+                    }
+                }
+                .padding(DesignSystem.Spacing.lg)
+            }
+        }
+    }
+
+    // MARK: - Consistent Panel Header
+
+    private func panelHeader<Trailing: View>(
+        title: String,
+        subtitle: String?,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(DesignSystem.Typography.headline)
+                    .foregroundColor(DesignSystem.Colors.primary)
+
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.secondary)
+                } else {
+                    // Spacer to maintain consistent height
+                    Text(" ")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(.clear)
+                }
+            }
+
+            Spacer()
+
+            trailing()
+        }
+        .padding(DesignSystem.Spacing.lg)
+        .background(DesignSystem.Colors.panel)
+        .frame(height: 70) // Fixed height for alignment
+    }
+
+    // MARK: - Inline Redacted Text View
+
+    private var detectionsView: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            // Inline tokenized text
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                Text("Redacted Text")
+                    .font(DesignSystem.Typography.bodyEmphasis)
+                    .foregroundColor(DesignSystem.Colors.secondary)
+
+                inlineTokenizedText
+                    .padding(DesignSystem.Spacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: 150)
+                    .background(DesignSystem.Colors.surface)
+                    .cornerRadius(DesignSystem.Radius.md)
+
+                HStack(spacing: DesignSystem.Spacing.xs) {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundColor(DesignSystem.Colors.info)
+
+                    Text("Click tokens to change redaction strategy")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.secondary)
+                }
+            }
+
+            // Confidence assessment
+            if let assessment = detector.confidenceAssessment {
+                confidenceCard(assessment: assessment)
+            }
+        }
+        .popover(isPresented: $showAlternativesPopover) {
+            if let token = selectedToken {
+                alternativesPopover(for: token)
+            }
+        }
+    }
+
+    private var inlineTokenizedText: some View {
+        TokenFlowLayout(spacing: 0) {
+            ForEach(parseTokenizedText(), id: \.id) { component in
+                if let item = component.item {
+                    // Clickable token button
+                    Button {
+                        selectedToken = item
+                        showAlternativesPopover = true
+                    } label: {
+                        Text(item.ghostToken)
+                            .font(DesignSystem.Typography.monoSmall)
+                            .fontWeight(.medium)
+                            .foregroundColor(DesignSystem.Colors.primary)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(item.type.highlightColor)
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Click to change redaction • Original: \(item.originalText)")
+                } else {
+                    // Plain text
+                    Text(component.text)
+                        .font(DesignSystem.Typography.body)
+                }
+            }
+        }
+    }
+
+    // Parse ghosted text into clickable tokens and plain text
+    private func parseTokenizedText() -> [TextComponent] {
+        var components: [TextComponent] = []
+        var remainingText = detector.ghostedText
+
+        // Create a map of tokens to items for quick lookup
+        var tokenMap: [String: PIIItem] = [:]
+        for item in detector.detectedItems {
+            tokenMap[item.ghostToken] = item
+        }
+
+        // Split by tokens
+        while !remainingText.isEmpty {
+            var foundToken = false
+
+            // Check if remaining text starts with any token
+            for (token, item) in tokenMap {
+                if remainingText.hasPrefix(token) {
+                    components.append(TextComponent(text: token, item: item))
+                    remainingText = String(remainingText.dropFirst(token.count))
+                    foundToken = true
+                    break
+                }
+            }
+
+            if !foundToken {
+                // Take one character as plain text
+                let char = String(remainingText.prefix(1))
+
+                // Merge with previous plain text component if possible
+                if let last = components.last, last.item == nil {
+                    components[components.count - 1] = TextComponent(
+                        text: last.text + char,
+                        item: nil
+                    )
+                } else {
+                    components.append(TextComponent(text: char, item: nil))
+                }
+
+                remainingText = String(remainingText.dropFirst(1))
+            }
+        }
+
+        return components
+    }
+
+    struct TextComponent: Identifiable {
+        let id = UUID()
+        let text: String
+        let item: PIIItem?
+    }
+
+    // MARK: - Alternatives Popover
+
+    private func alternativesPopover(for item: PIIItem) -> some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.type.rawValue)
+                        .font(DesignSystem.Typography.captionEmphasis)
+                        .foregroundColor(DesignSystem.Colors.secondary)
+
+                    Text(item.originalText)
+                        .font(DesignSystem.Typography.mono)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(item.type.highlightColor)
+                        .cornerRadius(4)
+                }
+
+                Spacer()
+
+                Button("Done") {
+                    showAlternativesPopover = false
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Redaction Options")
+                    .font(DesignSystem.Typography.bodyEmphasis)
+
+                ForEach(item.alternatives) { alternative in
+                    Button {
+                        selectAlternative(for: item, alternative: alternative)
+                    } label: {
+                        HStack {
+                            Image(systemName: alternative.id == item.selectedAlternativeId ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(alternative.id == item.selectedAlternativeId ? DesignSystem.Colors.info : DesignSystem.Colors.secondary)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(alternative.text)
+                                    .font(DesignSystem.Typography.mono)
+
+                                Text(alternative.description)
+                                    .font(DesignSystem.Typography.caption)
+                                    .foregroundColor(DesignSystem.Colors.secondary)
+                            }
+
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(DesignSystem.Spacing.lg)
+        .frame(width: 400)
+    }
+
+    private func selectAlternative(for item: PIIItem, alternative: RedactionAlternative) {
+        if let index = detector.detectedItems.firstIndex(where: { $0.id == item.id }) {
+            detector.detectedItems[index].selectedAlternativeId = alternative.id
+            detector.scan(text: inputText)
+        }
+    }
+
+    // MARK: - Confidence Card
+
+    private func confidenceCard(assessment: ConfidenceAssessment) -> some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            HStack {
+                Text("Confidence Assessment")
+                    .font(DesignSystem.Typography.bodyEmphasis)
+
+                Spacer()
+
+                HStack(spacing: 6) {
+                    Image(systemName: assessment.statusIcon)
+                    Text(assessment.statusText)
+                        .font(DesignSystem.Typography.captionEmphasis)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, DesignSystem.Spacing.md)
+                .padding(.vertical, 6)
+                .background(statusColor(assessment.status))
+                .cornerRadius(DesignSystem.Radius.lg)
+            }
+
+            Text("\(assessment.overallConfidence)% confidence")
+                .font(DesignSystem.Typography.title)
+                .fontWeight(.bold)
+                .foregroundColor(statusColor(assessment.status))
+
+            Text(assessment.explanation)
+                .font(DesignSystem.Typography.caption)
+                .foregroundColor(DesignSystem.Colors.secondary)
+        }
+        .cardStyle()
+    }
+
+    // MARK: - Empty States
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "text.magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+
+            Text("Enter text to detect PII")
+                .font(.title3)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var noDetectionsState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 48))
+                .foregroundColor(.green)
+
+            Text("No PII Detected")
+                .font(.title3)
+
+            Text("Your text appears safe to share")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Helpers
+
+    private func statusColor(_ status: ConfidenceStatus) -> Color {
+        switch status {
+        case .ready: return DesignSystem.Colors.success
+        case .reviewNeeded: return DesignSystem.Colors.warning
+        case .tooDegraded: return DesignSystem.Colors.error
+        }
+    }
+
+    private func copyToClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+}
+
+#Preview {
+    MainWindowNew()
+        .frame(width: 900, height: 700)
+}

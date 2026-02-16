@@ -4,6 +4,7 @@ struct MainWindow: View {
     @StateObject private var detector = PIIDetector()
     @State private var inputText: String = ""
     @State private var isProcessing: Bool = false
+    @State private var selectedItemId: UUID?
 
     var body: some View {
         HSplitView {
@@ -46,15 +47,43 @@ struct MainWindow: View {
             Divider()
 
             // Text input area
-            TextEditor(text: $inputText)
-                .font(DesignSystem.Typography.body)
-                .lineSpacing(DesignSystem.Typography.lineSpacing)
-                .padding(DesignSystem.Spacing.sm)
-                .scrollContentBackground(.hidden)
-                .onChange(of: inputText) { _, newValue in
-                    // Live detection as user types
-                    detector.scan(text: newValue)
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $inputText)
+                    .font(DesignSystem.Typography.body)
+                    .lineSpacing(DesignSystem.Typography.lineSpacing)
+                    .padding(DesignSystem.Spacing.sm)
+                    .scrollContentBackground(.hidden)
+                    .onChange(of: inputText) { _, newValue in
+                        // Live detection as user types
+                        detector.scan(text: newValue)
+                    }
+
+                // Visual indicator when token selected in output
+                if let selectedId = selectedItemId,
+                   let item = detector.detectedItems.first(where: { $0.id == selectedId }) {
+                    VStack {
+                        HStack {
+                            Text("Selected: \(item.originalText)")
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(item.type.highlightColor.opacity(0.8))
+                                .cornerRadius(4)
+                            Spacer()
+                        }
+                        .padding(8)
+                        Spacer()
+                    }
                 }
+            }
+            .onChange(of: selectedItemId) { _, newValue in
+                // Auto-clear selection after 2 seconds
+                if newValue != nil {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        selectedItemId = nil
+                    }
+                }
+            }
 
             Divider()
 
@@ -217,6 +246,7 @@ struct MainWindow: View {
                     text: detector.ghostedText,
                     items: detector.detectedItems,
                     inputText: $inputText,
+                    selectedItemId: $selectedItemId,
                     detector: detector
                 )
                 .frame(minHeight: 250)

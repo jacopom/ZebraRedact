@@ -6,6 +6,7 @@ struct ClickableTokenTextView: NSViewRepresentable {
     let text: String
     let items: [PIIItem]
     @Binding var inputText: String
+    @Binding var selectedItemId: UUID?
     let detector: PIIDetector
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -32,6 +33,7 @@ struct ClickableTokenTextView: NSViewRepresentable {
 
         context.coordinator.items = items
         context.coordinator.inputText = $inputText
+        context.coordinator.selectedItemId = $selectedItemId
         context.coordinator.detector = detector
 
         // Build attributed string with clickable tokens
@@ -40,7 +42,7 @@ struct ClickableTokenTextView: NSViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(items: items, inputText: $inputText, detector: detector)
+        Coordinator(items: items, inputText: $inputText, selectedItemId: $selectedItemId, detector: detector)
     }
 
     private func buildAttributedString() -> NSAttributedString {
@@ -89,11 +91,13 @@ struct ClickableTokenTextView: NSViewRepresentable {
     class Coordinator: NSObject, NSTextViewDelegate {
         var items: [PIIItem]
         var inputText: Binding<String>
+        var selectedItemId: Binding<UUID?>
         var detector: PIIDetector
 
-        init(items: [PIIItem], inputText: Binding<String>, detector: PIIDetector) {
+        init(items: [PIIItem], inputText: Binding<String>, selectedItemId: Binding<UUID?>, detector: PIIDetector) {
             self.items = items
             self.inputText = inputText
+            self.selectedItemId = selectedItemId
             self.detector = detector
         }
 
@@ -105,6 +109,9 @@ struct ClickableTokenTextView: NSViewRepresentable {
                 return false
             }
 
+            // Set selected item for highlighting in input
+            selectedItemId.wrappedValue = item.id
+
             // Show context menu at cursor position
             showContextMenu(for: item, in: textView)
             return true
@@ -112,8 +119,15 @@ struct ClickableTokenTextView: NSViewRepresentable {
 
         private func showContextMenu(for item: PIIItem, in textView: NSTextView) {
             let menu = NSMenu()
+            menu.autoenablesItems = false
 
-            // Add menu items for each alternative
+            // Add header showing original text
+            let header = NSMenuItem(title: "Change '\(item.originalText)' to:", action: nil, keyEquivalent: "")
+            header.isEnabled = false
+            menu.addItem(header)
+            menu.addItem(NSMenuItem.separator())
+
+            // Add menu items for each alternative with descriptions
             for alternative in item.alternatives {
                 let menuItem = NSMenuItem(
                     title: alternative.text,
@@ -122,22 +136,34 @@ struct ClickableTokenTextView: NSViewRepresentable {
                 )
                 menuItem.target = self
                 menuItem.representedObject = (item, alternative)
+                menuItem.isEnabled = true
 
                 // Show checkmark for selected alternative
                 if alternative.id == item.selectedAlternativeId {
                     menuItem.state = .on
                 }
 
-                // Add subtitle with strategy description
-                menuItem.toolTip = alternative.description
+                // Create attributed title with description
+                let attrString = NSMutableAttributedString()
+                attrString.append(NSAttributedString(string: alternative.text, attributes: [
+                    .font: NSFont.systemFont(ofSize: 13, weight: .medium)
+                ]))
+                attrString.append(NSAttributedString(string: "\n", attributes: [:]))
+                attrString.append(NSAttributedString(string: alternative.description, attributes: [
+                    .font: NSFont.systemFont(ofSize: 11),
+                    .foregroundColor: NSColor.secondaryLabelColor
+                ]))
+                menuItem.attributedTitle = attrString
 
                 menu.addItem(menuItem)
             }
 
-            // Show menu at mouse location
-            if let event = NSApp.currentEvent {
-                NSMenu.popUpContextMenu(menu, with: event, for: textView)
-            }
+            // Show menu at click position using current mouse location
+            let mouseLocation = NSEvent.mouseLocation
+            let windowPoint = textView.window?.convertPoint(fromScreen: mouseLocation) ?? .zero
+            let viewPoint = textView.convert(windowPoint, from: nil)
+
+            menu.popUp(positioning: nil, at: viewPoint, in: textView)
         }
 
         @objc private func selectAlternative(_ sender: NSMenuItem) {

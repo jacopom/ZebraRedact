@@ -104,13 +104,16 @@ final class NLTaggerDetector {
         }
 
         // Step 2: Ensure same entities get same tokens
+        // CRITICAL: Don't include type in key - same text should ALWAYS get same token
+        // regardless of whether detected as .name, .custom, .address, etc.
         var entityTokens: [String: [RedactionAlternative]] = [:]
         var result: [PIIItem] = []
 
         for item in uniquePositionItems {
             // Normalize entity text for matching
             let normalizedText = item.originalText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            let entityKey = "\(item.type.rawValue):\(normalizedText)"
+            // FIX: Use normalized text only as key (no type prefix)
+            let entityKey = normalizedText
 
             // Reuse alternatives if we've seen this entity before
             let alternatives: [RedactionAlternative]

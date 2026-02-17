@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "theatermasks.fill", accessibilityDescription: "GhostClip")
+            button.image = NSImage(systemSymbolName: "theatermasks.fill", accessibilityDescription: "ZebraRedact")
             button.image?.size = NSSize(width: 16, height: 16)
             button.image?.isTemplate = true
         }
@@ -38,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        let quitItem = NSMenuItem(title: "Quit GhostClip", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit ZebraRedact", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quitItem)
 
         statusItem.menu = menu
@@ -57,7 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Onboarding
 
     private func showOnboardingIfNeeded() {
-        let complete = UserDefaults.standard.bool(forKey: GhostClipConstants.StorageKeys.onboardingComplete)
+        let complete = UserDefaults.standard.bool(forKey: ZebraRedactConstants.StorageKeys.onboardingComplete)
         guard !complete else { return }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -126,7 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "GhostClip Settings"
+        window.title = "ZebraRedact Settings"
         window.contentView = NSHostingView(rootView: SettingsView())
         window.center()
         window.makeKeyAndOrderFront(nil)

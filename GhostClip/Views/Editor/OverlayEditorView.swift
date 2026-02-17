@@ -41,8 +41,8 @@ struct OverlayEditorView: View {
             footerBar
         }
         .frame(
-            minWidth: GhostClipConstants.Overlay.minWidth,
-            minHeight: GhostClipConstants.Overlay.minHeight
+            minWidth: ZebraRedactConstants.Overlay.minWidth,
+            minHeight: ZebraRedactConstants.Overlay.minHeight
         )
         .background(GhostTheme.panelBackground)
         .onAppear {
@@ -58,7 +58,7 @@ struct OverlayEditorView: View {
                 .font(.title2)
                 .foregroundStyle(GhostTheme.purple)
 
-            Text("GhostClip")
+            Text("ZebraRedact")
                 .font(GhostTheme.titleFont)
                 .foregroundStyle(GhostTheme.purple)
 

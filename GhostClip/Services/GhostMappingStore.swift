@@ -10,7 +10,7 @@ final class GhostMappingStore {
 
     private let storageURL: URL = {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let dir = support.appendingPathComponent("GhostClip", isDirectory: true)
+        let dir = support.appendingPathComponent("ZebraRedact", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("ghost_mappings.json")
     }()

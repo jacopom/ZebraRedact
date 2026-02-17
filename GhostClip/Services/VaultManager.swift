@@ -9,7 +9,7 @@ final class VaultManager: ObservableObject {
     @Published var isUnlocked: Bool = false
     @Published var error: String?
 
-    private let service = GhostClipConstants.Paths.vaultKeychainService
+    private let service = ZebraRedactConstants.Paths.vaultKeychainService
 
     // MARK: - Authentication
 
@@ -25,7 +25,7 @@ final class VaultManager: ObservableObject {
         do {
             let success = try await context.evaluatePolicy(
                 .deviceOwnerAuthentication,
-                localizedReason: "Unlock GhostClip Vault"
+                localizedReason: "Unlock ZebraRedact Vault"
             )
             isUnlocked = success
             if success { loadEntries() }
@@ -110,7 +110,7 @@ final class VaultManager: ObservableObject {
     // MARK: - Metadata Persistence
 
     private var metadataURL: URL {
-        GhostClipConstants.Paths.mlxModelsDirectory
+        ZebraRedactConstants.Paths.mlxModelsDirectory
             .deletingLastPathComponent()
             .appendingPathComponent("vault_meta.json")
     }

@@ -11,7 +11,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>GhostClip</string>
+	<string>ZebraRedact</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -21,8 +21,8 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>GhostClip uses biometric authentication to protect your Vault.</string>
+	<string>ZebraRedact uses biometric authentication to protect your Vault.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2025 GhostClip. All rights reserved.</string>
+	<string>Copyright © 2025 ZebraRedact. All rights reserved.</string>
 </dict>
 </plist>

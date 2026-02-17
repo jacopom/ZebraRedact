@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct GhostClipApp: App {
+struct ZebraRedactApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
@@ -11,7 +11,7 @@ struct GhostClipApp: App {
         }
         .commands {
             CommandGroup(replacing: .appInfo) {
-                Button("About GhostClip") {
+                Button("About ZebraRedact") {
                     NSApp.orderFrontStandardAboutPanel()
                 }
             }

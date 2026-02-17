@@ -22,27 +22,27 @@ enum DesignSystem {
 
     // MARK: - Colors
 
-    /// Muted, professional color palette
+    /// Hemingway-inspired warm, literary color palette
     enum Colors {
-        // Semantic colors
-        static let primary = Color.primary
-        static let secondary = Color.secondary
-        static let tertiary = Color(nsColor: .tertiaryLabelColor)
+        // Text colors - warm dark grays
+        static let primary = Color(red: 0.2, green: 0.2, blue: 0.18)  // Warm charcoal
+        static let secondary = Color(red: 0.48, green: 0.47, blue: 0.45)  // Warm gray
+        static let tertiary = Color(red: 0.65, green: 0.63, blue: 0.60)  // Light warm gray
 
-        // Background colors
-        static let background = Color(nsColor: .windowBackgroundColor)
-        static let panel = Color(nsColor: .controlBackgroundColor)
-        static let surface = Color(nsColor: .textBackgroundColor)
+        // Background colors - cream/parchment tones
+        static let background = Color(red: 0.98, green: 0.97, blue: 0.94)  // Cream
+        static let panel = Color(red: 0.94, green: 0.93, blue: 0.90)  // Light parchment
+        static let surface = Color(red: 0.96, green: 0.95, blue: 0.92)  // Subtle cream
 
-        // Status colors (muted)
-        static let success = Color(red: 0.3, green: 0.7, blue: 0.4)
-        static let warning = Color(red: 0.95, green: 0.7, blue: 0.3)
-        static let error = Color(red: 0.9, green: 0.4, blue: 0.4)
-        static let info = Color(red: 0.4, green: 0.6, blue: 0.9)
+        // Status colors - warm, literary tones
+        static let success = Color(red: 0.42, green: 0.58, blue: 0.46)  // Sage green
+        static let warning = Color(red: 0.82, green: 0.62, blue: 0.36)  // Amber
+        static let error = Color(red: 0.72, green: 0.38, blue: 0.36)  // Brick red
+        static let info = Color(red: 0.46, green: 0.54, blue: 0.62)  // Slate blue
 
-        // Zebra brand colors (black & white stripes)
-        static let zebraBlack = Color(red: 0.1, green: 0.1, blue: 0.1)
-        static let zebraWhite = Color(red: 0.95, green: 0.95, blue: 0.95)
+        // Zebra brand colors
+        static let zebraBlack = Color(red: 0.12, green: 0.12, blue: 0.12)
+        static let zebraWhite = Color(red: 0.96, green: 0.96, blue: 0.94)
     }
 
     // MARK: - Spacing

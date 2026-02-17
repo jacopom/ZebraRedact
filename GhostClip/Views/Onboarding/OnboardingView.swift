@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @AppStorage(GhostClipConstants.StorageKeys.onboardingComplete) private var onboardingComplete = false
+    @AppStorage(ZebraRedactConstants.StorageKeys.onboardingComplete) private var onboardingComplete = false
     @State private var currentPage = 0
 
     var body: some View {
@@ -67,7 +67,7 @@ struct OnboardingView: View {
                 .font(.system(size: 56))
                 .foregroundStyle(GhostTheme.purple)
 
-            Text("Welcome to GhostClip")
+            Text("Welcome to ZebraRedact")
                 .font(.system(.title, design: .rounded, weight: .bold))
 
             Text("Hide personal data before pasting into AI.")

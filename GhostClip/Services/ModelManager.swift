@@ -11,7 +11,7 @@ final class ModelManager: ObservableObject {
     private var downloadTasks: [String: URLSessionDownloadTask] = [:]
 
     init() {
-        activeModelID = UserDefaults.standard.string(forKey: GhostClipConstants.StorageKeys.activeModel)
+        activeModelID = UserDefaults.standard.string(forKey: ZebraRedactConstants.StorageKeys.activeModel)
         refreshInstallStates()
     }
 
@@ -22,7 +22,7 @@ final class ModelManager: ObservableObject {
     }
 
     func isInstalled(_ model: MLXModelInfo) -> Bool {
-        let modelPath = GhostClipConstants.Paths.mlxModelsDirectory
+        let modelPath = ZebraRedactConstants.Paths.mlxModelsDirectory
             .appendingPathComponent(model.name, isDirectory: true)
         return FileManager.default.fileExists(atPath: modelPath.path)
     }
@@ -44,7 +44,7 @@ final class ModelManager: ObservableObject {
     func installModel(_ model: MLXModelInfo) async {
         installStates[model.id] = .downloading(progress: 0)
 
-        let destDir = GhostClipConstants.Paths.mlxModelsDirectory
+        let destDir = ZebraRedactConstants.Paths.mlxModelsDirectory
             .appendingPathComponent(model.name, isDirectory: true)
 
         do {
@@ -76,7 +76,7 @@ final class ModelManager: ObservableObject {
     // MARK: - Uninstall
 
     func uninstallModel(_ model: MLXModelInfo) throws {
-        let modelPath = GhostClipConstants.Paths.mlxModelsDirectory
+        let modelPath = ZebraRedactConstants.Paths.mlxModelsDirectory
             .appendingPathComponent(model.name, isDirectory: true)
 
         try FileManager.default.removeItem(at: modelPath)
@@ -84,7 +84,7 @@ final class ModelManager: ObservableObject {
 
         if activeModelID == model.id {
             activeModelID = nil
-            UserDefaults.standard.removeObject(forKey: GhostClipConstants.StorageKeys.activeModel)
+            UserDefaults.standard.removeObject(forKey: ZebraRedactConstants.StorageKeys.activeModel)
         }
     }
 
@@ -93,7 +93,7 @@ final class ModelManager: ObservableObject {
     func switchToModel(_ model: MLXModelInfo) {
         guard isInstalled(model) else { return }
         activeModelID = model.id
-        UserDefaults.standard.set(model.id, forKey: GhostClipConstants.StorageKeys.activeModel)
+        UserDefaults.standard.set(model.id, forKey: ZebraRedactConstants.StorageKeys.activeModel)
     }
 
     // MARK: - Test

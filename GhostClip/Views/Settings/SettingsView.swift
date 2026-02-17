@@ -30,8 +30,8 @@ struct SettingsView: View {
 // MARK: - General
 
 struct GeneralSettingsTab: View {
-    @AppStorage(GhostClipConstants.StorageKeys.onboardingComplete) private var onboardingComplete = true
-    @AppStorage(GhostClipConstants.StorageKeys.showInDock) private var showInDock = true
+    @AppStorage(ZebraRedactConstants.StorageKeys.onboardingComplete) private var onboardingComplete = true
+    @AppStorage(ZebraRedactConstants.StorageKeys.showInDock) private var showInDock = true
 
     var body: some View {
         Form {
@@ -50,7 +50,7 @@ struct GeneralSettingsTab: View {
             }
 
             Section("Keyboard Shortcuts") {
-                LabeledContent("Summon GhostClip", value: "⌥⌘G")
+                LabeledContent("Summon ZebraRedact", value: "⌥⌘G")
                 LabeledContent("Apply & Copy", value: "⌘Return")
                 LabeledContent("Dismiss", value: "Escape")
             }
@@ -75,7 +75,7 @@ struct GeneralSettingsTab: View {
 // MARK: - Intelligence
 
 struct IntelligenceSettingsTab: View {
-    @AppStorage(GhostClipConstants.StorageKeys.detectionEngine) private var detectionEngine = "regex"
+    @AppStorage(ZebraRedactConstants.StorageKeys.detectionEngine) private var detectionEngine = "regex"
     @AppStorage("useSemanticReplacement") private var useSemanticReplacement = false
 
     var body: some View {
@@ -119,7 +119,7 @@ struct IntelligenceSettingsTab: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Detection Engine")
                         .font(.headline)
-                    Text("Choose how GhostClip identifies sensitive information")
+                    Text("Choose how ZebraRedact identifies sensitive information")
                         .font(.caption)
                         .foregroundStyle(GhostTheme.secondaryText)
                 }
@@ -251,7 +251,7 @@ struct AboutSettingsTab: View {
                 .font(.system(size: 48))
                 .foregroundStyle(GhostTheme.purple)
 
-            Text("GhostClip")
+            Text("ZebraRedact")
                 .font(.title.bold())
 
             Text("Version 1.0.0")

@@ -1,7 +1,7 @@
 import Foundation
 
-enum GhostClipConstants {
-    static let appName = "GhostClip"
+enum ZebraRedactConstants {
+    static let appName = "ZebraRedact"
     static let bundleIdentifier = "com.ghostclip.app"
 
     // MARK: - Storage Keys
@@ -35,7 +35,7 @@ enum GhostClipConstants {
     enum Paths {
         static var mlxModelsDirectory: URL {
             FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("GhostClip/MLX", isDirectory: true)
+                .appendingPathComponent("ZebraRedact/MLX", isDirectory: true)
         }
 
         static var vaultKeychainService: String { "com.ghostclip.vault" }

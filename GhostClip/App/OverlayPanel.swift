@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// A floating NSPanel that hosts the GhostClip overlay editor.
+/// A floating NSPanel that hosts the ZebraRedact overlay editor.
 final class OverlayPanel: NSPanel {
 
     init(contentRect: NSRect) {

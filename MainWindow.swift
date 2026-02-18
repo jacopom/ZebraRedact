@@ -226,6 +226,25 @@ struct MainWindow: View {
 
                     Divider()
 
+                    // Redaction Mode
+                    SidebarSection(title: "Mode") {
+                        Picker("", selection: $detector.redactionMode) {
+                            Text("Tokens").tag(RedactionMode.token)
+                            Text("Fake Data").tag(RedactionMode.semantic)
+                            Text("AI Classify").tag(RedactionMode.llmAware)
+                        }
+                        .pickerStyle(.radioGroup)
+                        .onChange(of: detector.redactionMode) { _, mode in
+                            if mode != .llmAware {
+                                OllamaEngine.activeModel = nil
+                                selectedAIModelId = "none"
+                            }
+                            if !inputText.isEmpty { detector.scan(text: inputText) }
+                        }
+                    }
+
+                    Divider()
+
                     // AI Model
                     SidebarSection(title: "AI Model") {
                         Picker("", selection: $selectedAIModelId) {
@@ -308,40 +327,38 @@ struct MainWindow: View {
     // MARK: - Input Panel
 
     private var inputPanel: some View {
-        Group {
-            if inputText.isEmpty {
-                emptyInputState
-            } else {
-                InputTextView(
-                    text: $inputText,
-                    highlightRange: selectedToken?.range,
-                    highlightColor: selectedToken?.type.highlightColor ?? .clear,
-                    onTextChange: { newText in detector.scan(text: newText) }
-                )
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
+        // Always render the NSTextView so Cmd+V works even on the empty state
+        ZStack(alignment: .center) {
+            InputTextView(
+                text: $inputText,
+                highlightRange: selectedToken?.range,
+                highlightColor: selectedToken?.type.highlightColor ?? .clear,
+                onTextChange: { newText in detector.scan(text: newText) }
+            )
 
-    private var emptyInputState: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "text.magnifyingglass")
-                .font(.system(size: 40))
-                .foregroundColor(DesignSystem.Colors.tertiary)
-            Text("Paste or type text to scan")
-                .font(.callout)
-                .foregroundColor(DesignSystem.Colors.secondary)
-            HStack(spacing: 8) {
-                Button(action: pasteFromClipboard) {
-                    Label("Paste", systemImage: "doc.on.clipboard")
+            // Placeholder overlay — shown when empty, buttons remain interactive
+            if inputText.isEmpty {
+                VStack(spacing: 14) {
+                    Image(systemName: "text.magnifyingglass")
+                        .font(.system(size: 40))
+                        .foregroundColor(DesignSystem.Colors.tertiary)
+                    Text("Paste or type to scan")
+                        .font(.callout)
+                        .foregroundColor(DesignSystem.Colors.secondary)
+                    HStack(spacing: 8) {
+                        Button(action: pasteFromClipboard) {
+                            Label("Paste", systemImage: "doc.on.clipboard")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        Button(action: loadSampleText) {
+                            Label("Sample", systemImage: "text.document")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                Button(action: loadSampleText) {
-                    Label("Sample", systemImage: "text.document")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .allowsHitTesting(true)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -350,27 +367,42 @@ struct MainWindow: View {
     // MARK: - Output Panel
 
     private var outputPanel: some View {
-        Group {
-            if inputText.isEmpty {
-                Color.clear
-            } else if detector.detectedItems.isEmpty && !detector.isProcessing {
-                noDetectionsState
-            } else {
-                ClickableTokenTextView(
-                    text: detector.ghostedText,
-                    items: detector.detectedItems,
-                    onTokenClick: { item in selectedToken = item },
-                    onTextSelection: { selectedText in
-                        pendingManualTokenText = selectedText
-                        manualTokenType = .custom
-                        manualTokenError = nil
-                        showManualTokenSheet = true
-                    },
-                    appliedTexts: detector.appliedReplacements
-                )
+        ZStack {
+            Group {
+                if inputText.isEmpty {
+                    Color.clear
+                } else if detector.detectedItems.isEmpty && !detector.isProcessing {
+                    noDetectionsState
+                } else {
+                    ClickableTokenTextView(
+                        text: detector.ghostedText,
+                        items: detector.detectedItems,
+                        onTokenClick: { item in selectedToken = item },
+                        onTextSelection: { selectedText in
+                            pendingManualTokenText = selectedText
+                            manualTokenType = .custom
+                            manualTokenError = nil
+                            showManualTokenSheet = true
+                        },
+                        appliedTexts: detector.appliedReplacements
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Processing spinner overlay
+            if detector.isProcessing && !inputText.isEmpty {
+                VStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.9)
+                    Text("Analyzing…")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(16)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var noDetectionsState: some View {
@@ -452,29 +484,40 @@ struct MainWindow: View {
                 }
 
                 if !detector.ghostedText.isEmpty {
-                    Menu {
+                    // Split button: left = direct copy, right chevron = dropdown
+                    HStack(spacing: 0) {
                         Button(action: { copyToClipboard(detector.ghostedText) }) {
-                            Label("Copy Redacted Text", systemImage: "doc.on.doc")
+                            HStack(spacing: 4) {
+                                Image(systemName: "doc.on.doc").font(.system(size: 11))
+                                Text("Copy Redacted").font(.system(size: 11))
+                            }
+                            .padding(.leading, 9)
+                            .padding(.trailing, 6)
+                            .padding(.vertical, 5)
                         }
-                        Divider()
-                        Button(action: copyWithSafetyPrompt) {
-                            Label("Copy with Safety Prompt", systemImage: "lock.doc")
+                        .buttonStyle(.plain)
+
+                        Rectangle()
+                            .fill(DesignSystem.Colors.tertiary.opacity(0.3))
+                            .frame(width: 1, height: 16)
+
+                        Menu {
+                            Button(action: copyWithSafetyPrompt) {
+                                Label("Copy with Safety Prompt", systemImage: "lock.doc")
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 9))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 5)
                         }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "doc.on.doc").font(.system(size: 11))
-                            Text("Copy Redacted").font(.system(size: 11))
-                            Image(systemName: "chevron.down").font(.system(size: 8))
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 5)
-                                .stroke(DesignSystem.Colors.tertiary.opacity(0.4), lineWidth: 1)
-                        )
+                        .menuStyle(.borderlessButton)
+                        .fixedSize()
                     }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    .background(
+                        RoundedRectangle(cornerRadius: 5)
+                            .stroke(DesignSystem.Colors.tertiary.opacity(0.4), lineWidth: 1)
+                    )
                 }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -555,7 +598,10 @@ struct MainWindow: View {
     private func applyAIModelSelection(_ modelId: String) {
         if modelId == "none" {
             OllamaEngine.activeModel = nil
-            detector.redactionMode = .semantic
+            // Only revert to semantic if currently in LLM-Aware mode
+            if detector.redactionMode == .llmAware {
+                detector.redactionMode = .semantic
+            }
         } else {
             OllamaEngine.activeModel = modelId
             detector.redactionMode = .llmAware
@@ -897,6 +943,30 @@ struct AlternativesDropdown: View {
                             onSelect: { selectAlternative(alternative) }
                         )
                     }
+
+                    // Restore original option
+                    Button(action: restoreOriginal) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.uturn.backward.circle")
+                                .font(.title3)
+                                .foregroundColor(.secondary)
+                                .frame(width: 28)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Restore original")
+                                    .font(.system(.body, design: .monospaced))
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+                                Text("Remove tag, show original text")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 24)
@@ -913,6 +983,11 @@ struct AlternativesDropdown: View {
             detector.objectWillChange.send()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { selectedToken = nil }
+    }
+
+    private func restoreOriginal() {
+        detector.removeItem(item, originalText: inputText)
+        selectedToken = nil
     }
 }
 

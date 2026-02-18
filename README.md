@@ -1,6 +1,6 @@
-# GhostClip
+# ZebraRedact
 
-Local PII masking for LLM prompts. Ghost your sensitive data before sharing with AI.
+Local PII redaction for LLM prompts. Strip sensitive data before sharing text with AI — on-device, zero network calls.
 
 ## Requirements
 
@@ -10,140 +10,93 @@ Local PII masking for LLM prompts. Ghost your sensitive data before sharing with
 
 ## Build & Run
 
-### From Xcode
-
-1. Open `GhostClip.xcodeproj` in Xcode 16+
-2. Select the `GhostClip` scheme
-3. Press `⌘R` to build and run
-
-### From Command Line
-
 ```bash
-# Ensure Xcode is selected
-sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-
-# Build
-xcodebuild -project GhostClip.xcodeproj -scheme GhostClip -configuration Debug build
+# Build (from project root)
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  xcodebuild -project ZebraRedact.xcodeproj -scheme ZebraRedact -configuration Debug build
 
 # Archive for distribution
-xcodebuild -project GhostClip.xcodeproj -scheme GhostClip -configuration Release archive -archivePath build/GhostClip.xcarchive
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  xcodebuild -project ZebraRedact.xcodeproj -scheme ZebraRedact -configuration Release \
+  archive -archivePath build/ZebraRedact.xcarchive
 ```
-
-## Hotkeys
-
-| Shortcut | Action |
-|----------|--------|
-| `⌥⌘G` | Summon GhostClip overlay editor (global hotkey) |
-| `⌘⏎` | Apply ghosted text to clipboard |
-| `⎋` (Escape) | Dismiss overlay |
-| `⌘,` | Open Settings |
-| `⌘Q` | Quit |
 
 ## Features
 
-### Free Tier
-- Regex-based PII detection (email, phone, credit card, SSN, IP, API keys)
-- Split-pane editor: Original text vs. Ghosted preview
-- Privacy score indicator
-- Global hotkey `⌥⌘G` from any app
-- Menu bar status item
+### Redaction Modes
 
-### Pro Tier (€19)
-- MLX-powered AI PII detection (98% accuracy)
-- Model management (download, install, switch, uninstall)
-- Secure Vault (Keychain-backed, biometric/PIN protected)
-- Rehydration support via `[GHOST_X]` tokens
+| Mode | Description |
+|------|-------------|
+| **Tokens** | Replace PII with stable tokens like `[NAME_A1B2]` |
+| **Fake Data** | Substitute realistic fictional values (semantic replacements) |
+| **AI Classify** | On-device LLM augments detection and generates context-aware fakes |
+
+### Detection
+
+- **NLTagger** — names, organizations, locations (Apple NLP)
+- **Regex** — email, phone, credit card, SSN, IPv4, API keys
+- **LLM Augmentation** — catches entities NLTagger/regex miss (optional, on-device only)
+
+### LLM Backends (LLM Classify mode)
+
+Priority order, all on-device:
+
+1. **Apple Intelligence** (`FoundationModels`, macOS 26+)
+2. **Ollama** — llama3.2:3b / phi4-mini / gemma3 / mistral7b via `localhost:11434`
+3. **MLX** — downloadable model via ModelManager
+4. **Semantic fallback** — curated fake-data pools (always available)
+
+### UI
+
+- Three-panel layout: collapsible sidebar + clear text + redacted text
+- Sidebar: PII type toggles, domain presets (GDPR, HIPAA, CCPA, Finance, Education, Transportation), redaction mode, AI model picker
+- Click any token in the output to choose an alternative replacement
+- Right-click plain text in the output to manually tag undetected PII
+- "Restore original" from the token dropdown to untokenize a mistakenly tagged word
+- Re-hydrate sheet: paste LLM response with tokens back → restore originals
+- Copy with optional safety prompt prefix for LLMs
+- Confidence quality indicator (task completability, hallucination risk, coherence)
 
 ## Architecture
 
 ```
-GhostClip/
-├── App/
-│   ├── GhostClipApp.swift          # @main entry, MenuBarExtra, Settings scene
-│   ├── AppDelegate.swift            # Menu bar, hotkey registration, overlay lifecycle
-│   └── OverlayPanel.swift           # NSPanel for floating editor
-├── Views/
-│   ├── Onboarding/
-│   │   └── OnboardingView.swift     # 3-slide TabView onboarding
-│   ├── Editor/
-│   │   ├── OverlayEditorView.swift  # Main split-pane editor
-│   │   └── GhostScoreBadge.swift    # Privacy score indicator
-│   └── Settings/
-│       ├── SettingsView.swift       # NavigationSplitView settings
-│       ├── ModelManagementView.swift # MLX model install/uninstall
-│       └── VaultView.swift          # Keychain vault UI
-├── Models/
-│   ├── PIIItem.swift                # PII detection data model
-│   └── MLXModelInfo.swift           # MLX model metadata
-├── Services/
-│   ├── RegexDetector.swift          # Regex-based PII detection
-│   ├── PIIDetector.swift            # Detection facade (Regex/MLX)
-│   ├── ModelManager.swift           # MLX model lifecycle
-│   ├── VaultManager.swift           # Keychain vault operations
-│   ├── HotkeyManager.swift          # Carbon global hotkey
-│   └── ClipboardManager.swift       # NSPasteboard operations
-├── Utilities/
-│   ├── Constants.swift              # App-wide constants
-│   └── Theme.swift                  # Colors (#6B46C1 purple, etc.)
-└── Resources/
-    ├── Assets.xcassets              # App icon, colors
-    └── PrivacyInfo.xcprivacy        # Privacy manifest
-```
-
-## Flows
-
-1. **Launch** -> Onboarding (first launch) -> Menu bar icon active
-2. **⌥⌘G** -> Capture clipboard/selection -> Show overlay editor -> Edit -> Apply
-3. **Pro: Model Management** -> Settings -> Pick model -> Install (progress) -> Test -> Switch/Uninstall
-4. **Pro: Vault** -> Settings -> Authenticate -> Add secrets -> Use in editor
-
-## Testing
-
-```bash
-# Build and run tests
-xcodebuild -project GhostClip.xcodeproj -scheme GhostClip test
-
-# Test PII detection manually
-# The regex detector covers: email, phone, credit card, SSN, IPv4, API keys
-```
-
-## Notarized DMG
-
-```bash
-# Create archive
-xcodebuild -project GhostClip.xcodeproj \
-  -scheme GhostClip \
-  -configuration Release \
-  archive -archivePath build/GhostClip.xcarchive
-
-# Export
-xcodebuild -exportArchive \
-  -archivePath build/GhostClip.xcarchive \
-  -exportPath build/ \
-  -exportOptionsPlist ExportOptions.plist
-
-# Create DMG
-hdiutil create -volname "GhostClip" \
-  -srcfolder build/GhostClip.app \
-  -ov -format UDZO \
-  build/GhostClip.dmg
-
-# Notarize (requires Apple Developer account)
-xcrun notarytool submit build/GhostClip.dmg \
-  --apple-id YOUR_APPLE_ID \
-  --team-id YOUR_TEAM_ID \
-  --password YOUR_APP_PASSWORD \
-  --wait
+ZebraRedact/
+├── ZebraRedact/                   # Xcode target sources
+│   ├── App/
+│   │   └── ZebraRedactApp.swift   # @main, WindowGroup
+│   ├── Models/
+│   │   ├── PIIItem.swift          # PII data model + alternatives
+│   │   ├── PIIType.swift          # Enum of detectable PII categories
+│   │   └── ConfidenceAssessment.swift
+│   ├── Services/
+│   │   ├── PIIDetector.swift      # Detection orchestrator + masking pipeline
+│   │   ├── NLTaggerDetector.swift # Apple NLP detection
+│   │   ├── RegexDetector.swift    # Regex-based detection
+│   │   ├── GhostMappingStore.swift # Token ↔ original mapping (rehydration)
+│   │   ├── ModelManager.swift     # MLX model lifecycle
+│   │   └── VaultManager.swift     # Keychain vault
+│   └── Utilities/
+│       ├── DesignSystem.swift     # Colors, typography
+│       └── Constants.swift
+│
+└── (root — compiled into target)
+    ├── MainWindow.swift           # Main UI: sidebar + panels + bottom bar
+    ├── ClickableTokenTextView.swift # NSTextView with clickable + right-click tokens
+    ├── RedactionMode.swift        # .token / .semantic / .llmAware
+    ├── SemanticAnalyzer.swift     # Semantic replacement helpers
+    ├── OllamaEngine.swift         # Ollama HTTP client + model management
+    ├── LLMAwareSetupSheet.swift   # Ollama setup UI
+    ├── MLXContextEngine.swift     # MLX inference stub
+    └── FoundationModelEngine.swift # Apple FoundationModels engine (macOS 26+)
 ```
 
 ## Privacy
 
-- All PII detection runs locally on-device
-- No data is sent to any server
-- Vault entries are stored in macOS Keychain
-- NSPrivacyTracking: false
-- No collected data types
+- All detection and inference runs entirely on-device
+- No data is sent to any external server
+- Vault entries stored in macOS Keychain
+- `NSPrivacyTracking: false` — no tracking, no collected data types
 
 ## License
 
-Copyright 2025 GhostClip. All rights reserved.
+Copyright 2025 ZebraRedact. All rights reserved.

@@ -107,29 +107,32 @@ final class PIIDetector: ObservableObject {
         isProcessing = true
 
         let allItems = detector.detect(in: text)
-        detectedItems = allItems.filter { enabledCategories.contains($0.type) }
+        let filtered = allItems.filter { enabledCategories.contains($0.type) }
 
+        // Don't update detectedItems here — update it atomically with ghostedText
+        // in applyMasking to avoid a window where items exist but text is stale.
         Task {
-            await applyMasking(to: text)
+            await applyMasking(to: text, newItems: filtered)
             await MainActor.run {
                 isProcessing = false
             }
         }
     }
 
-    private func applyMasking(to text: String) async {
+    private func applyMasking(to text: String, newItems: [PIIItem]) async {
+        var items = newItems
         var result = text
         var applied: [UUID: String] = [:]
 
         switch redactionMode {
         case .token:
-            for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+            for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
                 result.replaceSubrange(item.range, with: item.ghostToken)
                 applied[item.id] = item.ghostToken
             }
 
         case .semantic:
-            for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+            for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
                 if let semanticAlt = item.alternatives.first(where: { $0.strategy == .semantic }) {
                     result.replaceSubrange(item.range, with: semanticAlt.text)
                     applied[item.id] = semanticAlt.text
@@ -151,19 +154,19 @@ final class PIIDetector: ObservableObject {
                     // Augment detection with entities NLTagger/regex may have missed
                     let additionalItems = try await engine.augmentDetection(
                         text: text,
-                        existingItems: detectedItems
+                        existingItems: items
                     )
                     if !additionalItems.isEmpty {
-                        detectedItems = (detectedItems + additionalItems)
+                        items = (items + additionalItems)
                             .sorted { $0.range.lowerBound < $1.range.lowerBound }
                     }
 
                     // Generate context-preserving replacements
                     let replacements = try await engine.generateContextAwareReplacements(
                         text: text,
-                        items: detectedItems
+                        items: items
                     )
-                    for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+                    for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
                         let replacement = replacements[item.id] ?? item.ghostToken
                         result.replaceSubrange(item.range, with: replacement)
                         applied[item.id] = replacement
@@ -181,17 +184,17 @@ final class PIIDetector: ObservableObject {
                     do {
                         let additionalItems = try await OllamaEngine.augmentDetection(
                             text: text,
-                            existingItems: detectedItems
+                            existingItems: items
                         )
                         if !additionalItems.isEmpty {
-                            detectedItems = (detectedItems + additionalItems)
+                            items = (items + additionalItems)
                                 .sorted { $0.range.lowerBound < $1.range.lowerBound }
                         }
                         let replacements = try await OllamaEngine.generateContextAwareReplacements(
                             text: text,
-                            items: detectedItems
+                            items: items
                         )
-                        for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+                        for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
                             let replacement = replacements[item.id]
                                 ?? item.alternatives.first(where: { $0.strategy == .semantic })?.text
                                 ?? item.ghostToken
@@ -211,9 +214,9 @@ final class PIIDetector: ObservableObject {
                     do {
                         let replacements = try await mlxEngine.generateContextAwareReplacements(
                             text: text,
-                            items: detectedItems
+                            items: items
                         )
-                        for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+                        for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
                             let replacement = replacements[item.id] ?? item.ghostToken
                             result.replaceSubrange(item.range, with: replacement)
                             applied[item.id] = replacement
@@ -225,8 +228,8 @@ final class PIIDetector: ObservableObject {
                 }
 
                 if !handled {
-                    // Priority 3: Semantic fallback
-                    for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+                    // Priority 4: Semantic fallback
+                    for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
                         if let semanticAlt = item.alternatives.first(where: { $0.strategy == .semantic }) {
                             result.replaceSubrange(item.range, with: semanticAlt.text)
                             applied[item.id] = semanticAlt.text
@@ -240,11 +243,30 @@ final class PIIDetector: ObservableObject {
         }
 
         await MainActor.run {
+            // Update detectedItems and ghostedText together so ClickableTokenTextView
+            // always sees a consistent state — no window where items exist in a stale text.
+            detectedItems = items
             ghostedText = result
             appliedReplacements = applied
-            privacyScore = calculateScore(items: detectedItems)
-            GhostMappingStore.shared.storeBatch(items: detectedItems)
+            privacyScore = calculateScore(items: items)
+            GhostMappingStore.shared.storeBatch(items: items)
         }
+    }
+
+    // MARK: - Remove Item (untokenize)
+
+    /// Remove a PII item and rebuild the output text, restoring the original value.
+    func removeItem(_ item: PIIItem, originalText: String) {
+        appliedReplacements.removeValue(forKey: item.id)
+        detectedItems.removeAll { $0.id == item.id }
+        // Rebuild ghostedText from originalText using remaining items
+        var result = originalText
+        for remaining in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where remaining.isMasked {
+            let replacement = appliedReplacements[remaining.id] ?? remaining.ghostToken
+            result.replaceSubrange(remaining.range, with: replacement)
+        }
+        ghostedText = result
+        privacyScore = calculateScore(items: detectedItems)
     }
 
     // MARK: - Toggle Individual Items

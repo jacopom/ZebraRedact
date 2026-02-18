@@ -1,115 +1,79 @@
-# Session Summary - 2026-02-16
+# Session Summary - 2026-02-18
 
-## ✅ Completed
+## ✅ Completed This Session
 
-### 1. Entity Deduplication Fix
-- **Problem**: "Heineken" got different tokens each time (CUSTOM_C519, NAME_FF08, etc.)
-- **Fix**: Removed type prefix from deduplication key
-- **Result**: Same entity text = same token ALWAYS
+### 1. Ollama Integration (from previous session)
+- Created `OllamaEngine.swift` — HTTP client for Ollama (`localhost:11434`): list models, pull model (streaming), generate
+- Created `LLMAwareSetupSheet.swift` — model download UI with progress bars, active model selection
+- Wired Ollama as Priority 2 in `PIIDetector.llmAware` branch (after Foundation Models, before MLX)
+- Added "LLM-Aware Setup" to top bar
 
-### 2. Branding: GhostClip → ZebraRedact
-- Renamed all files and references
-- Updated bundle identifiers
-- Changed app name throughout codebase
+### 2. Ollama UUID Matching Fix
+- **Problem**: Small models (llama3.2:3b) can't reliably reproduce 36-char UUIDs → output showed `[CUSTOM_8F73]` raw tokens instead of context-aware replacements
+- **Fix**: Changed `OllamaReplacementEntry` from `{id, replacement}` to `{original, replacement}` — match by original text string instead
 
-### 3. Hemingway-Inspired Color Palette
-Warm, literary, earthy tones:
-- **Text**: Warm charcoal, warm grays
-- **Backgrounds**: Cream, parchment tones
-- **Status**: Sage green, amber, brick red, slate blue
-- **Feel**: Professional, inviting, literary aesthetic
+### 3. UI Redesign (wireframe-driven)
+- Three-panel layout: collapsible sidebar (220 px) + "Clear text" + "Redacted text"
+- Sidebar: PII type checkboxes, domain preset picker, redaction mode (radio), AI model picker
+- `DomainPreset` enum with 7 compliance presets (GDPR, HIPAA, CCPA, Finance, Education, Transportation)
+- Status quality pill (READY / REVIEW / DEGRADED) with popover showing 3 metrics
+- Re-hydrate sheet: paste token-bearing LLM response → restore originals
+- Split copy button: direct copy + chevron dropdown for "Copy with Safety Prompt"
 
-### 4. Bidirectional Highlighting (Basic)
-- Token click → shows "Selected: [text]" indicator in input
-- Auto-clears after 2 seconds
-- Visual connection between panels
+### 4. Four UI Improvements
+- Mode picker (Tokens / Fake Data / AI Classify) in sidebar
+- Spinner overlay in redacted text panel during processing
+- Always-rendered NSTextView for instant Cmd+V paste without clicking
+- AI model selection syncs with mode picker (selecting None reverts to Fake Data if in AI Classify)
 
-### 5. Improved Context Menu
-- Two-line items (token + description)
-- Header showing original text
-- Better positioning
+### 5. Bug Fix — Token Clickability Race Condition
+- **Problem**: Tokens sometimes appeared but were not clickable/selectable
+- **Root cause**: `detectedItems` was set synchronously in `scan()`, but `ghostedText` updated asynchronously later. `ClickableTokenTextView` saw new items in a stale text, found no match positions, and set no `.link` attributes
+- **Fix**: Removed early `detectedItems` assignment from `scan()`. Refactored `applyMasking(to:newItems:)` to work from a local `items` copy, then update `detectedItems` and `ghostedText` atomically in the same `MainActor.run` block
 
-## ❌ Still TODO (Critical)
+### 6. Feature — Untokenize / Restore Original Text
+- **New**: `PIIDetector.removeItem(_:originalText:)` — removes item from `detectedItems`, strips its `appliedReplacements` entry, rebuilds `ghostedText` from `originalText` using remaining items
+- **UI**: "Restore original" row at the bottom of the `AlternativesDropdown` list (arrow.uturn.backward icon)
+- Use case: auto-detection tagged a word incorrectly → user clicks token → "Restore original" → word reverts to plain text, item removed
 
-### 1. Tokens After Scroll Not Clickable ⚠️
-**Problem**: NSTextView tokens below fold aren't clickable
-**Root cause**: Click detection breaks with scrolling
-**Fix needed**: Ensure link detection works in scrolled content
-**File**: `ClickableTokenTextView.swift`
+---
 
-### 2. Confidence Panel Layout
-**Current**: Takes too much space in right panel
-**Needed**:
-- Move to bottom-right corner
-- Anchor to bottom
-- Compact size (info in tooltips)
-- Give more space to redacted text
+## 📊 Git History
 
-### 3. Copy Button Position
-**Current**: Top-right header
-**Needed**: Below redacted text area with label "Copy redacted"
+| Commit | Description |
+|--------|-------------|
+| `e75ddd0` | fix: Token click highlighting and UI improvements |
+| `d39a3cc` | docs: Add session summary with completed work and TODO list |
+| `c37e7e4` | refactor: Rebrand from GhostClip to ZebraRedact + Hemingway colors |
+| `da32ec9` | fix: Entity deduplication, context menu, and bidirectional highlighting |
+| `d1d45ad` | feat: Add MainWindow with clickable tokens and alternatives system |
 
-### 4. Preserve Tokens on Edit
-**Problem**: Editing input regenerates all tokens
-**Needed**: Reuse existing tokens for unchanged entities
-**Impact**: User loses context when making small edits
+---
 
-### 5. Context Menu Radio Buttons
-**Problem**: Selection mechanism not working properly
-**Symptoms**: Menu shows but selection doesn't update
-**File**: `ClickableTokenTextView.swift` - `selectAlternative` method
+## 🗂 Key Files
 
-### 6. Scan Button
-**Problem**: Doesn't seem to work (user reported)
-**Location**: Bottom-left of input panel
-**Code**: Line 121 `detector.scan(text: inputText)`
-**Debug**: Check if detector is wired correctly
+| File | Purpose |
+|------|---------|
+| `MainWindow.swift` | Main UI: sidebar, panels, bottom bar, sheets |
+| `ClickableTokenTextView.swift` | NSTextView with token links + right-click tagging |
+| `ZebraRedact/Services/PIIDetector.swift` | Detection orchestrator + masking pipeline |
+| `OllamaEngine.swift` | Ollama HTTP client |
+| `LLMAwareSetupSheet.swift` | Ollama model download UI |
+| `FoundationModelEngine.swift` | Apple Intelligence engine (macOS 26+) |
+| `RedactionMode.swift` | `.token` / `.semantic` / `.llmAware` |
 
-## 📊 Git Commits
+---
 
-1. `d1d45ad` - feat: Add MainWindow with clickable tokens and alternatives system
-2. `da32ec9` - fix: Entity deduplication, context menu, and bidirectional highlighting
-3. `c37e7e4` - refactor: Rebrand from GhostClip to ZebraRedact + Hemingway colors
+## 🎯 Remaining TODOs
 
-## 🎯 Next Session Priorities
+### P0 — Critical
+- None known
 
-### P0 - Critical (Breaks UX)
-1. Fix tokens after scroll not clickable
-2. Fix preserve tokens on edit
+### P1 — Polish
+- Preserve existing tokens when user edits input text (re-scan loses manual tags)
+- Keyboard shortcut for "Copy Redacted" (e.g. ⌘⇧C)
 
-### P1 - Important (User Requested)
-3. Redesign confidence panel (bottom-right, compact)
-4. Move Copy button below redacted text
-5. Fix context menu selection mechanism
-6. Debug Scan button
-
-### P2 - Nice to Have
-7. Improve bidirectional highlighting (highlight exact text position)
-8. Add keyboard shortcuts
-9. Polish animations/transitions
-
-## 💡 Key Learnings
-
-### Architecture Issues
-- **NSTextView scrolling**: Link detection breaks outside visible rect
-- **Token persistence**: Need to store token map separately from detection results
-- **Context menu**: NSMenu works but selection callback needs debugging
-
-### Design Decisions
-- **Hemingway palette works**: Warm tones feel more professional
-- **ZebraRedact name**: Clear, professional, memorable
-- **Bidirectional highlighting**: Visual indicator works, but needs refinement
-
-## 🐛 Known Bugs
-
-1. **Tokens not clickable after scroll** (critical)
-2. **Context menu radio buttons don't update selection**
-3. **Scan button may not trigger detection**
-4. **Editing input loses all tokens** (should preserve)
-
-## 📝 Code Quality Notes
-
-- Entity deduplication now works correctly
-- Color system is well-structured
-- Bidirectional highlighting is basic but functional
-- Need to refactor MainWindow for better layout flexibility
+### P2 — Future
+- Foundation Models (`FoundationModelEngine`) — live once macOS 26 ships
+- MLX engine — needs `mlx-swift` SPM package + model download UI wiring
+- Export / history log

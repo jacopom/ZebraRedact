@@ -53,18 +53,18 @@ enum PIIType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    /// Hemingway-style muted highlight colors
+    /// Distinct highlight colors for each PII type
     var highlightColor: Color {
         switch self {
-        case .email: return Color(red: 0.95, green: 0.85, blue: 0.7, opacity: 0.4)     // Muted orange
-        case .phone: return Color(red: 0.7, green: 0.85, blue: 0.95, opacity: 0.4)     // Muted blue
-        case .creditCard: return Color(red: 0.95, green: 0.7, blue: 0.7, opacity: 0.4) // Muted red
-        case .ssn: return Color(red: 0.95, green: 0.7, blue: 0.85, opacity: 0.4)       // Muted pink
-        case .ipAddress: return Color(red: 0.8, green: 0.75, blue: 0.95, opacity: 0.4) // Muted purple
-        case .apiKey: return Color(red: 0.95, green: 0.9, blue: 0.7, opacity: 0.4)     // Muted yellow
-        case .name: return Color(red: 0.75, green: 0.95, blue: 0.8, opacity: 0.4)      // Muted green
-        case .address: return Color(red: 0.85, green: 0.9, blue: 0.75, opacity: 0.4)   // Muted lime
-        case .custom: return Color(red: 0.85, green: 0.85, blue: 0.85, opacity: 0.4)   // Muted gray
+        case .email: return Color(red: 1.0, green: 0.75, blue: 0.5)     // Orange
+        case .phone: return Color(red: 0.5, green: 0.75, blue: 1.0)     // Blue
+        case .creditCard: return Color(red: 1.0, green: 0.5, blue: 0.5) // Red
+        case .ssn: return Color(red: 1.0, green: 0.5, blue: 0.85)       // Pink
+        case .ipAddress: return Color(red: 0.7, green: 0.6, blue: 1.0)  // Purple
+        case .apiKey: return Color(red: 1.0, green: 0.9, blue: 0.5)     // Yellow
+        case .name: return Color(red: 0.5, green: 0.95, blue: 0.7)      // Green
+        case .address: return Color(red: 0.75, green: 0.85, blue: 0.6)  // Lime
+        case .custom: return Color(red: 0.7, green: 0.8, blue: 0.9)     // Light blue
         }
     }
 }
@@ -78,6 +78,7 @@ struct PIIItem: Identifiable, Equatable {
     var selectedAlternativeId: UUID
     var confidence: Double
     var isMasked: Bool
+    var isManual: Bool
 
     /// The currently selected ghost token
     var ghostToken: String {
@@ -96,7 +97,8 @@ struct PIIItem: Identifiable, Equatable {
         alternatives: [RedactionAlternative],
         selectedAlternativeId: UUID,
         confidence: Double = 1.0,
-        isMasked: Bool = true
+        isMasked: Bool = true,
+        isManual: Bool = false
     ) {
         self.id = UUID()
         self.type = type
@@ -106,6 +108,7 @@ struct PIIItem: Identifiable, Equatable {
         self.selectedAlternativeId = selectedAlternativeId
         self.confidence = confidence
         self.isMasked = isMasked
+        self.isManual = isManual
     }
 
     /// Generate default alternatives for this PII type

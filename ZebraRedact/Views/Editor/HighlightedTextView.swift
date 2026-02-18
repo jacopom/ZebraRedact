@@ -7,6 +7,7 @@ struct HighlightedTextView: NSViewRepresentable {
     let piiItems: [PIIItem]
     let isEditable: Bool
     var onTextChange: ((String) -> Void)?
+    var onManualTag: ((NSRange, PIIType) -> Void)?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -66,6 +67,12 @@ struct HighlightedTextView: NSViewRepresentable {
 
             let bgColor = GhostTheme.nsHighlightColor(for: item.type)
             textStorage.addAttribute(.backgroundColor, value: bgColor, range: nsRange)
+
+            // Add dotted underline for manual tags
+            if item.isManual {
+                textStorage.addAttribute(.underlineStyle, value: NSUnderlineStyle.patternDot.rawValue | NSUnderlineStyle.single.rawValue, range: nsRange)
+                textStorage.addAttribute(.underlineColor, value: NSColor(item.type.highlightColor.opacity(0.8)), range: nsRange)
+            }
         }
 
         textStorage.endEditing()
@@ -84,6 +91,41 @@ struct HighlightedTextView: NSViewRepresentable {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
             parent.onTextChange?(textView.string)
+        }
+
+        // MARK: - Context Menu for Manual Tagging
+
+        func textView(_ textView: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
+            let selectedRange = textView.selectedRange()
+
+            // Only add "Tag as PII" if text is selected
+            guard selectedRange.length > 0 else { return menu }
+
+            menu.addItem(NSMenuItem.separator())
+
+            let tagMenuItem = NSMenuItem(title: "Tag as PII", action: nil, keyEquivalent: "")
+            let submenu = NSMenu()
+
+            for piiType in PIIType.allCases {
+                let item = NSMenuItem(
+                    title: piiType.rawValue,
+                    action: #selector(tagSelection(_:)),
+                    keyEquivalent: ""
+                )
+                item.image = NSImage(systemSymbolName: piiType.icon, accessibilityDescription: nil)
+                item.target = self
+                item.representedObject = (selectedRange, piiType)
+                submenu.addItem(item)
+            }
+
+            tagMenuItem.submenu = submenu
+            menu.addItem(tagMenuItem)
+            return menu
+        }
+
+        @objc func tagSelection(_ sender: NSMenuItem) {
+            guard let (nsRange, piiType) = sender.representedObject as? (NSRange, PIIType) else { return }
+            parent.onManualTag?(nsRange, piiType)
         }
     }
 }

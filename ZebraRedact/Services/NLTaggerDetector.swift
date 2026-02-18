@@ -21,7 +21,6 @@ final class NLTaggerDetector {
         tagger.string = text
 
         let options: NLTagger.Options = [.omitPunctuation, .omitWhitespace, .joinNames]
-        let tags: [NLTagScheme] = [.nameType]
 
         tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word, scheme: .nameType, options: options) { tag, tokenRange in
             guard let tag = tag else { return true }

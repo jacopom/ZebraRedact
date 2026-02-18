@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A100000001 /* GhostClipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000001 /* GhostClipApp.swift */; };
+		A100000001 /* ZebraRedactApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000001 /* ZebraRedactApp.swift */; };
 		A100000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000002 /* AppDelegate.swift */; };
 		A100000003 /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000003 /* OverlayPanel.swift */; };
 		A100000004 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000004 /* OnboardingView.swift */; };
@@ -36,10 +36,13 @@
 		A10000001B /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B162F43B70700AD681A /* DesignSystem.swift */; };
 		A10000001C /* ConfidenceAssessment.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */; };
 		A10000001D /* NLTaggerDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000001F /* NLTaggerDetector.swift */; };
+		EA2E793F2F45E75A0044850B /* RedactionMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E793E2F45E75A0044850B /* RedactionMode.swift */; };
+		EA2E79422F45E7770044850B /* SemanticAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79412F45E7770044850B /* SemanticAnalyzer.swift */; };
+		EA2E79432F45E7770044850B /* MLXContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79402F45E7770044850B /* MLXContextEngine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		B100000001 /* GhostClipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostClipApp.swift; sourceTree = "<group>"; };
+		B100000001 /* ZebraRedactApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZebraRedactApp.swift; sourceTree = "<group>"; };
 		B100000002 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		B100000003 /* OverlayPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPanel.swift; sourceTree = "<group>"; };
 		B100000004 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -60,17 +63,20 @@
 		B100000013 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		B100000014 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B100000015 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		B100000016 /* GhostClip.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GhostClip.entitlements; sourceTree = "<group>"; };
+		B100000016 /* ZebraRedact.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ZebraRedact.entitlements; sourceTree = "<group>"; };
 		B100000017 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B100000018 /* HighlightedTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedTextView.swift; sourceTree = "<group>"; };
 		B100000019 /* GhostMappingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostMappingStore.swift; sourceTree = "<group>"; };
-		C100000001 /* GhostClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GhostClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000001F /* NLTaggerDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NLTaggerDetector.swift; sourceTree = "<group>"; };
+		C100000001 /* ZebraRedact.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZebraRedact.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA2E793E2F45E75A0044850B /* RedactionMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionMode.swift; sourceTree = "<group>"; };
+		EA2E79402F45E7770044850B /* MLXContextEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXContextEngine.swift; sourceTree = "<group>"; };
+		EA2E79412F45E7770044850B /* SemanticAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticAnalyzer.swift; sourceTree = "<group>"; };
 		EADA2B132F43B6F800AD681A /* AlternativesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlternativesSheet.swift; sourceTree = "<group>"; };
 		EADA2B142F43B6F800AD681A /* ClickableTokenTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickableTokenTextView.swift; sourceTree = "<group>"; };
 		EADA2B152F43B6F800AD681A /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
 		EADA2B162F43B70700AD681A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfidenceAssessment.swift; sourceTree = "<group>"; };
-		B10000001F /* NLTaggerDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NLTaggerDetector.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,17 +93,21 @@
 		E100000001 = {
 			isa = PBXGroup;
 			children = (
+				EA2E79402F45E7770044850B /* MLXContextEngine.swift */,
+				EA2E79412F45E7770044850B /* SemanticAnalyzer.swift */,
+				EA2E793E2F45E75A0044850B /* RedactionMode.swift */,
 				EADA2B132F43B6F800AD681A /* AlternativesSheet.swift */,
 				EADA2B142F43B6F800AD681A /* ClickableTokenTextView.swift */,
 				EADA2B152F43B6F800AD681A /* MainWindow.swift */,
 				EADA2B162F43B70700AD681A /* DesignSystem.swift */,
 				EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */,
-				E100000002 /* GhostClip */,
+				E100000002 /* ZebraRedact */,
 				E100000010 /* Products */,
+				EA2E793D2F45E7000044850B /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
-		E100000002 /* GhostClip */ = {
+		E100000002 /* ZebraRedact */ = {
 			isa = PBXGroup;
 			children = (
 				E100000003 /* App */,
@@ -106,16 +116,16 @@
 				E100000009 /* Services */,
 				E10000000A /* Utilities */,
 				E10000000B /* Resources */,
-				B100000016 /* GhostClip.entitlements */,
+				B100000016 /* ZebraRedact.entitlements */,
 				B100000017 /* Info.plist */,
 			);
-			path = GhostClip;
+			path = ZebraRedact;
 			sourceTree = "<group>";
 		};
 		E100000003 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				B100000001 /* GhostClipApp.swift */,
+				B100000001 /* ZebraRedactApp.swift */,
 				B100000002 /* AppDelegate.swift */,
 				B100000003 /* OverlayPanel.swift */,
 			);
@@ -205,17 +215,24 @@
 		E100000010 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C100000001 /* GhostClip.app */,
+				C100000001 /* ZebraRedact.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		EA2E793D2F45E7000044850B /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		F100000001 /* GhostClip */ = {
+		F100000001 /* ZebraRedact */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = G100000002 /* Build configuration list for PBXNativeTarget "GhostClip" */;
+			buildConfigurationList = G100000002 /* Build configuration list for PBXNativeTarget "ZebraRedact" */;
 			buildPhases = (
 				F100000002 /* Sources */,
 				D100000001 /* Frameworks */,
@@ -225,9 +242,9 @@
 			);
 			dependencies = (
 			);
-			name = GhostClip;
-			productName = GhostClip;
-			productReference = C100000001 /* GhostClip.app */;
+			name = ZebraRedact;
+			productName = ZebraRedact;
+			productReference = C100000001 /* ZebraRedact.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -245,7 +262,7 @@
 					};
 				};
 			};
-			buildConfigurationList = G100000001 /* Build configuration list for PBXProject "GhostClip" */;
+			buildConfigurationList = G100000001 /* Build configuration list for PBXProject "ZebraRedact" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -258,7 +275,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				F100000001 /* GhostClip */,
+				F100000001 /* ZebraRedact */,
 			);
 		};
 /* End PBXProject section */
@@ -280,7 +297,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A100000001 /* GhostClipApp.swift in Sources */,
+				A100000001 /* ZebraRedactApp.swift in Sources */,
 				A100000002 /* AppDelegate.swift in Sources */,
 				A100000003 /* OverlayPanel.swift in Sources */,
 				A100000004 /* OnboardingView.swift in Sources */,
@@ -292,6 +309,7 @@
 				A10000000A /* PIIItem.swift in Sources */,
 				A10000000B /* MLXModelInfo.swift in Sources */,
 				A10000000C /* RegexDetector.swift in Sources */,
+				EA2E793F2F45E75A0044850B /* RedactionMode.swift in Sources */,
 				A10000000D /* PIIDetector.swift in Sources */,
 				A10000000E /* ModelManager.swift in Sources */,
 				A10000000F /* VaultManager.swift in Sources */,
@@ -302,6 +320,8 @@
 				A100000016 /* HighlightedTextView.swift in Sources */,
 				A100000017 /* GhostMappingStore.swift in Sources */,
 				A100000018 /* MainWindow.swift in Sources */,
+				EA2E79422F45E7770044850B /* SemanticAnalyzer.swift in Sources */,
+				EA2E79432F45E7770044850B /* MLXContextEngine.swift in Sources */,
 				A100000019 /* ClickableTokenTextView.swift in Sources */,
 				A10000001A /* AlternativesSheet.swift in Sources */,
 				A10000001B /* DesignSystem.swift in Sources */,
@@ -434,7 +454,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = GhostClip/GhostClip.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ZebraRedact/ZebraRedact.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -442,9 +462,9 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = GhostClip/Info.plist;
+				INFOPLIST_FILE = ZebraRedact/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 GhostClip. All rights reserved.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 ZebraRedact. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -463,7 +483,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = GhostClip/GhostClip.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ZebraRedact/ZebraRedact.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -471,9 +491,9 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = GhostClip/Info.plist;
+				INFOPLIST_FILE = ZebraRedact/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 GhostClip. All rights reserved.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 ZebraRedact. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -490,7 +510,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		G100000001 /* Build configuration list for PBXProject "GhostClip" */ = {
+		G100000001 /* Build configuration list for PBXProject "ZebraRedact" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				H100000001 /* Debug */,
@@ -499,7 +519,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		G100000002 /* Build configuration list for PBXNativeTarget "GhostClip" */ = {
+		G100000002 /* Build configuration list for PBXNativeTarget "ZebraRedact" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				H100000003 /* Debug */,

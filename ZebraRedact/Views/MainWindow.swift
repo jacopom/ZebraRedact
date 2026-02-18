@@ -109,6 +109,18 @@ struct MainWindow: View {
                 .help("Remove extra line breaks")
                 .disabled(inputText.isEmpty)
 
+                Divider()
+                    .frame(height: 16)
+
+                // Fix spacing
+                Button(action: fixSpacing) {
+                    Label("Clean", systemImage: "wand.and.stars")
+                        .font(.callout)
+                }
+                .buttonStyle(.borderless)
+                .help("Clean up spacing and formatting")
+                .disabled(inputText.isEmpty)
+
                 Spacer()
 
                 // Undo button
@@ -609,7 +621,14 @@ struct MainWindow: View {
         detector.scan(text: inputText)
     }
 
-
+    private func fixSpacing() {
+        // Clean up multiple spaces, tabs, and formatting
+        inputText = inputText
+            .replacingOccurrences(of: "\t", with: " ")
+            .replacingOccurrences(of: "  +", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        detector.scan(text: inputText)
+    }
 }
 
 // MARK: - Alternatives Dropdown (In-Window)

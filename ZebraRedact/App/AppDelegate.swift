@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var overlayPanel: OverlayPanel?
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var mainWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBarItem()
@@ -26,7 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
 
-        let openItem = NSMenuItem(title: "Ghost Clipboard   ⌥⌘G", action: #selector(triggerOverlay), keyEquivalent: "")
+        let openItem = NSMenuItem(title: "Open ZebraRedact   ⌥⌘G", action: #selector(triggerOverlay), keyEquivalent: "")
         openItem.target = self
         menu.addItem(openItem)
 
@@ -82,32 +83,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.onboardingWindow = window
     }
 
-    // MARK: - Overlay
+    // MARK: - Main Window
 
     @objc func triggerOverlay() {
-        if let panel = overlayPanel, panel.isVisible {
-            panel.dismissOverlay()
-            overlayPanel = nil
+        // Show or focus the main window instead of overlay
+        showMainWindow()
+    }
+
+    private func showMainWindow() {
+        // If main window already exists and is visible, just bring it to front
+        if let window = mainWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
             return
         }
 
-        ClipboardManager.shared.captureSelection { [weak self] text in
-            let inputText = text ?? ""
-            self?.showOverlayEditor(with: inputText)
-        }
-    }
-
-    private func showOverlayEditor(with text: String) {
-        let panel = OverlayPanel(contentRect: .zero)
-        self.overlayPanel = panel
-
-        panel.showOverlay {
-            OverlayEditorView(initialText: text) { [weak self] ghostedText in
-                ClipboardManager.shared.writeText(ghostedText)
-                self?.overlayPanel?.dismissOverlay()
-                self?.overlayPanel = nil
-            }
-        }
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 700),
+            styleMask: [.titled, .closable, .resizable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "ZebraRedact"
+        window.contentView = NSHostingView(rootView: MainWindow())
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.mainWindow = window
     }
 
     // MARK: - Settings

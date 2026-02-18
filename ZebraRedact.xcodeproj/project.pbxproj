@@ -42,6 +42,14 @@
 		EA2E79452F45E7780044850B /* FoundationModelEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79442F45E7780044850B /* FoundationModelEngine.swift */; };
 		EA2E79462F45E7820044850B /* OllamaEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79472F45E7820044850B /* OllamaEngine.swift */; };
 		EA2E79482F45E7830044850B /* LLMAwareSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79492F45E7830044850B /* LLMAwareSetupSheet.swift */; };
+		EB00000021 /* SemanticRedactorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000011 /* SemanticRedactorAPI.swift */; };
+		EB00000022 /* RedactionConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000012 /* RedactionConfig.swift */; };
+		EB00000023 /* LocalLLMClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000013 /* LocalLLMClient.swift */; };
+		EB00000024 /* PatternDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000014 /* PatternDetector.swift */; };
+		EB00000025 /* SemanticSynthesizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000015 /* SemanticSynthesizer.swift */; };
+		EB00000026 /* SufficiencyScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000016 /* SufficiencyScorer.swift */; };
+		EB00000027 /* SemanticRedactorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000017 /* SemanticRedactorImpl.swift */; };
+		EB00000028 /* SemanticRedactorBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000018 /* SemanticRedactorBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -83,6 +91,14 @@
 		EA2E79442F45E7780044850B /* FoundationModelEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelEngine.swift; sourceTree = "<group>"; };
 		EA2E79472F45E7820044850B /* OllamaEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaEngine.swift; sourceTree = "<group>"; };
 		EA2E79492F45E7830044850B /* LLMAwareSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMAwareSetupSheet.swift; sourceTree = "<group>"; };
+		EB00000011 /* SemanticRedactorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorAPI.swift; sourceTree = "<group>"; };
+		EB00000012 /* RedactionConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionConfig.swift; sourceTree = "<group>"; };
+		EB00000013 /* LocalLLMClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLMClient.swift; sourceTree = "<group>"; };
+		EB00000014 /* PatternDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternDetector.swift; sourceTree = "<group>"; };
+		EB00000015 /* SemanticSynthesizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticSynthesizer.swift; sourceTree = "<group>"; };
+		EB00000016 /* SufficiencyScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SufficiencyScorer.swift; sourceTree = "<group>"; };
+		EB00000017 /* SemanticRedactorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorImpl.swift; sourceTree = "<group>"; };
+		EB00000018 /* SemanticRedactorBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorBridge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -123,12 +139,28 @@
 				E100000004 /* Views */,
 				E100000008 /* Models */,
 				E100000009 /* Services */,
+				EB000000G1 /* Semantic */,
 				E10000000A /* Utilities */,
 				E10000000B /* Resources */,
 				B100000016 /* ZebraRedact.entitlements */,
 				B100000017 /* Info.plist */,
 			);
 			path = ZebraRedact;
+			sourceTree = "<group>";
+		};
+		EB000000G1 /* Semantic */ = {
+			isa = PBXGroup;
+			children = (
+				EB00000011 /* SemanticRedactorAPI.swift */,
+				EB00000012 /* RedactionConfig.swift */,
+				EB00000013 /* LocalLLMClient.swift */,
+				EB00000014 /* PatternDetector.swift */,
+				EB00000015 /* SemanticSynthesizer.swift */,
+				EB00000016 /* SufficiencyScorer.swift */,
+				EB00000017 /* SemanticRedactorImpl.swift */,
+				EB00000018 /* SemanticRedactorBridge.swift */,
+			);
+			path = Semantic;
 			sourceTree = "<group>";
 		};
 		E100000003 /* App */ = {
@@ -339,6 +371,14 @@
 				EA2E79452F45E7780044850B /* FoundationModelEngine.swift in Sources */,
 				EA2E79462F45E7820044850B /* OllamaEngine.swift in Sources */,
 				EA2E79482F45E7830044850B /* LLMAwareSetupSheet.swift in Sources */,
+				EB00000021 /* SemanticRedactorAPI.swift in Sources */,
+				EB00000022 /* RedactionConfig.swift in Sources */,
+				EB00000023 /* LocalLLMClient.swift in Sources */,
+				EB00000024 /* PatternDetector.swift in Sources */,
+				EB00000025 /* SemanticSynthesizer.swift in Sources */,
+				EB00000026 /* SufficiencyScorer.swift in Sources */,
+				EB00000027 /* SemanticRedactorImpl.swift in Sources */,
+				EB00000028 /* SemanticRedactorBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

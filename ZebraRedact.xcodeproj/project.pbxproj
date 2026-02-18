@@ -39,6 +39,9 @@
 		EA2E793F2F45E75A0044850B /* RedactionMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E793E2F45E75A0044850B /* RedactionMode.swift */; };
 		EA2E79422F45E7770044850B /* SemanticAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79412F45E7770044850B /* SemanticAnalyzer.swift */; };
 		EA2E79432F45E7770044850B /* MLXContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79402F45E7770044850B /* MLXContextEngine.swift */; };
+		EA2E79452F45E7780044850B /* FoundationModelEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79442F45E7780044850B /* FoundationModelEngine.swift */; };
+		EA2E79462F45E7820044850B /* OllamaEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79472F45E7820044850B /* OllamaEngine.swift */; };
+		EA2E79482F45E7830044850B /* LLMAwareSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79492F45E7830044850B /* LLMAwareSetupSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -77,6 +80,9 @@
 		EADA2B152F43B6F800AD681A /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
 		EADA2B162F43B70700AD681A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfidenceAssessment.swift; sourceTree = "<group>"; };
+		EA2E79442F45E7780044850B /* FoundationModelEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelEngine.swift; sourceTree = "<group>"; };
+		EA2E79472F45E7820044850B /* OllamaEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaEngine.swift; sourceTree = "<group>"; };
+		EA2E79492F45E7830044850B /* LLMAwareSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMAwareSetupSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +107,9 @@
 				EADA2B152F43B6F800AD681A /* MainWindow.swift */,
 				EADA2B162F43B70700AD681A /* DesignSystem.swift */,
 				EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */,
+				EA2E79442F45E7780044850B /* FoundationModelEngine.swift */,
+				EA2E79472F45E7820044850B /* OllamaEngine.swift */,
+				EA2E79492F45E7830044850B /* LLMAwareSetupSheet.swift */,
 				E100000002 /* ZebraRedact */,
 				E100000010 /* Products */,
 				EA2E793D2F45E7000044850B /* Recovered References */,
@@ -327,6 +336,9 @@
 				A10000001B /* DesignSystem.swift in Sources */,
 				A10000001C /* ConfidenceAssessment.swift in Sources */,
 				A10000001D /* NLTaggerDetector.swift in Sources */,
+				EA2E79452F45E7780044850B /* FoundationModelEngine.swift in Sources */,
+				EA2E79462F45E7820044850B /* OllamaEngine.swift in Sources */,
+				EA2E79482F45E7830044850B /* LLMAwareSetupSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

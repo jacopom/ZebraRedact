@@ -1,17 +1,50 @@
 import SwiftUI
 import AppKit
 
-/// NSTextView wrapper with clickable token links
+// MARK: - Tokenizable NSTextView Subclass
+
+/// NSTextView subclass that adds right-click "Tag as PII…" context menu for selected text
+final class TokenizableTextView: NSTextView {
+    var onTokenizeSelection: ((String) -> Void)?
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        guard selectedRange().length > 0 else { return super.menu(for: event) }
+        let menu = NSMenu()
+        let tagItem = NSMenuItem(
+            title: "Tag as PII…",
+            action: #selector(tagSelection),
+            keyEquivalent: ""
+        )
+        tagItem.target = self
+        menu.addItem(tagItem)
+        return menu
+    }
+
+    @objc private func tagSelection() {
+        let text = (string as NSString).substring(with: selectedRange())
+        onTokenizeSelection?(text)
+    }
+}
+
+// MARK: - ClickableTokenTextView
+
+/// NSTextView wrapper with clickable token links and right-click PII tagging
 struct ClickableTokenTextView: NSViewRepresentable {
     let text: String
     let items: [PIIItem]
     let onTokenClick: (PIIItem) -> Void
+    var onTextSelection: ((String) -> Void)? = nil
+    /// Maps item IDs to the text actually placed in the output (varies by redaction mode)
+    var appliedTexts: [UUID: String] = [:]
 
     func makeNSView(context: Context) -> NSScrollView {
-        let scrollView = NSTextView.scrollableTextView()
-        let textView = scrollView.documentView as! NSTextView
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers = true
+        scrollView.borderType = .noBorder
 
-        // Configure text view
+        let textView = TokenizableTextView()
         textView.isEditable = false
         textView.isSelectable = true
         textView.textContainerInset = CGSize(width: 12, height: 12)
@@ -19,21 +52,24 @@ struct ClickableTokenTextView: NSViewRepresentable {
         textView.textColor = NSColor.labelColor
         textView.backgroundColor = NSColor.controlBackgroundColor
         textView.delegate = context.coordinator
-
-        // Enable link detection
         textView.isAutomaticLinkDetectionEnabled = false
+        textView.autoresizingMask = [.width]
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.textContainer?.widthTracksTextView = true
 
+        scrollView.documentView = textView
         return scrollView
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
-        guard let textView = scrollView.documentView as? NSTextView else { return }
+        guard let textView = scrollView.documentView as? TokenizableTextView else { return }
 
         context.coordinator.items = items
         context.coordinator.onTokenClick = onTokenClick
+        textView.onTokenizeSelection = onTextSelection
 
-        // Build attributed string with clickable tokens
-        let attributedString = buildAttributedString()
+        let attributedString = buildAttributedString(appliedTexts: appliedTexts)
         textView.textStorage?.setAttributedString(attributedString)
     }
 
@@ -41,50 +77,41 @@ struct ClickableTokenTextView: NSViewRepresentable {
         Coordinator(items: items, onTokenClick: onTokenClick)
     }
 
-    private func buildAttributedString() -> NSAttributedString {
+    private func buildAttributedString(appliedTexts: [UUID: String]) -> NSAttributedString {
         let result = NSMutableAttributedString(string: text)
 
         // Default attributes
-        let defaultFont = NSFont.systemFont(ofSize: 15)
-        let defaultColor = NSColor.labelColor
         result.addAttributes([
-            .font: defaultFont,
-            .foregroundColor: defaultColor
+            .font: NSFont.systemFont(ofSize: 15),
+            .foregroundColor: NSColor.labelColor
         ], range: NSRange(location: 0, length: result.length))
 
         // Style tokens and make them clickable
-        // Track which positions have been used to avoid duplicate links
+        // Track used positions to avoid duplicate links
         var usedRanges: Set<Int> = []
 
         for item in items {
-            // Find the FIRST unused occurrence of this token
+            // Search for the text that was actually placed in the output for this item
+            let searchText = appliedTexts[item.id] ?? item.ghostToken
             var searchRange = NSRange(location: 0, length: (text as NSString).length)
 
             while searchRange.location < (text as NSString).length {
-                let foundRange = (text as NSString).range(of: item.ghostToken, range: searchRange)
+                let foundRange = (text as NSString).range(of: searchText, range: searchRange)
                 guard foundRange.location != NSNotFound else { break }
 
-                // Only apply link if this position hasn't been used yet
                 if !usedRanges.contains(foundRange.location) {
-                    // Token styling
-                    let tokenFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
-                    let tokenColor = NSColor.labelColor
-                    let backgroundColor = nsColor(from: item.type.highlightColor)
-
                     result.addAttributes([
-                        .font: tokenFont,
-                        .foregroundColor: tokenColor,
-                        .backgroundColor: backgroundColor,
-                        .link: item.id.uuidString, // Use UUID as link
-                        .underlineStyle: 0 // No underline
+                        .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .medium),
+                        .foregroundColor: NSColor.labelColor,
+                        .backgroundColor: NSColor(item.type.highlightColor),
+                        .link: item.id.uuidString,
+                        .underlineStyle: 0
                     ], range: foundRange)
 
-                    // Mark this position as used
                     usedRanges.insert(foundRange.location)
-                    break // Only link the first unused occurrence
+                    break
                 }
 
-                // Move search range forward
                 searchRange.location = foundRange.location + foundRange.length
                 searchRange.length = (text as NSString).length - searchRange.location
             }
@@ -93,15 +120,7 @@ struct ClickableTokenTextView: NSViewRepresentable {
         return result
     }
 
-    private func nsColor(from color: Color) -> NSColor {
-        // Convert SwiftUI Color to NSColor
-        // This is a simplified conversion
-        switch color.description {
-        default:
-            // Extract color components via NSColor
-            return NSColor(color)
-        }
-    }
+    // MARK: - Coordinator
 
     class Coordinator: NSObject, NSTextViewDelegate {
         var items: [PIIItem]
@@ -113,13 +132,11 @@ struct ClickableTokenTextView: NSViewRepresentable {
         }
 
         func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
-            // Link is the UUID string we stored
             guard let uuidString = link as? String,
                   let uuid = UUID(uuidString: uuidString),
                   let item = items.first(where: { $0.id == uuid }) else {
                 return false
             }
-
             onTokenClick(item)
             return true
         }

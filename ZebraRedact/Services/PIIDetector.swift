@@ -28,23 +28,51 @@ final class PIIDetector: ObservableObject {
     @Published var enabledCategories: Set<PIIType> = Set(PIIType.allCases)
     @Published var redactionMode: RedactionMode = .semantic
     @Published var semanticContext: SemanticContext?
+    /// Maps each item ID → the text actually placed in ghostedText for that item
+    @Published var appliedReplacements: [UUID: String] = [:]
 
     private let detector = NLTaggerDetector()
     private var mlxEngine: MLXContextEngine?
     private var modelManager: ModelManager?
+
+    /// Type-erased FoundationModelEngine (macOS 26+)
+    private var foundationEngine: AnyObject?
 
     init(modelManager: ModelManager? = nil) {
         self.modelManager = modelManager
         if modelManager != nil {
             self.mlxEngine = MLXContextEngine(modelManager: modelManager)
         }
+        #if canImport(FoundationModels)
+        if #available(macOS 26.0, *) {
+            foundationEngine = FoundationModelEngine()
+        }
+        #endif
+    }
+
+    // MARK: - Computed Properties
+
+    /// Whether Foundation Models is active for the current mode
+    var isFoundationModelsActive: Bool {
+        guard redactionMode == .llmAware else { return false }
+        #if canImport(FoundationModels)
+        if #available(macOS 26.0, *) {
+            return FoundationModelEngine.isAvailable
+        }
+        #endif
+        return false
+    }
+
+    /// Whether Ollama is configured (active model set) for LLM-Aware mode
+    var isOllamaActive: Bool {
+        guard redactionMode == .llmAware else { return false }
+        return OllamaEngine.activeModel != nil
     }
 
     /// Computed confidence assessment
     var confidenceAssessment: ConfidenceAssessment? {
         guard !detectedItems.isEmpty else { return nil }
 
-        // Simple heuristic: more redactions = lower confidence
         let wordCount = max(1.0, Double(ghostedText.split(separator: " ").count))
         let redactionRatio = Double(detectedItems.count) / wordCount
 
@@ -64,8 +92,6 @@ final class PIIDetector: ObservableObject {
         guard let assessment = confidenceAssessment, assessment.status != .ready else {
             return []
         }
-
-        // Generate issues for problematic items
         return detectedItems.prefix(3).map { item in
             ConfidenceIssue(
                 item: item,
@@ -83,7 +109,6 @@ final class PIIDetector: ObservableObject {
         let allItems = detector.detect(in: text)
         detectedItems = allItems.filter { enabledCategories.contains($0.type) }
 
-        // Apply masking based on mode
         Task {
             await applyMasking(to: text)
             await MainActor.run {
@@ -94,70 +119,121 @@ final class PIIDetector: ObservableObject {
 
     private func applyMasking(to text: String) async {
         var result = text
+        var applied: [UUID: String] = [:]
 
         switch redactionMode {
         case .token:
-            // Token-based masking (original approach)
             for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
                 result.replaceSubrange(item.range, with: item.ghostToken)
+                applied[item.id] = item.ghostToken
             }
 
         case .semantic:
-            // Semantic replacement with realistic fake data
             for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-                // Use semantic alternative if available
                 if let semanticAlt = item.alternatives.first(where: { $0.strategy == .semantic }) {
                     result.replaceSubrange(item.range, with: semanticAlt.text)
+                    applied[item.id] = semanticAlt.text
                 } else {
                     result.replaceSubrange(item.range, with: item.ghostToken)
+                    applied[item.id] = item.ghostToken
                 }
             }
 
         case .llmAware:
-            // LLM-Aware mode: Context-preserving semantic replacements
-            guard let mlxEngine = mlxEngine else {
-                // Fallback to semantic if MLX not available
-                for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-                    if let semanticAlt = item.alternatives.first(where: { $0.strategy == .semantic }) {
-                        result.replaceSubrange(item.range, with: semanticAlt.text)
-                    } else {
-                        result.replaceSubrange(item.range, with: item.ghostToken)
+            var handled = false
+
+            // Priority 1: Foundation Models (macOS 26+)
+            #if canImport(FoundationModels)
+            if #available(macOS 26.0, *),
+               let engine = foundationEngine as? FoundationModelEngine,
+               FoundationModelEngine.isAvailable {
+                do {
+                    // Augment detection with entities NLTagger/regex may have missed
+                    let additionalItems = try await engine.augmentDetection(
+                        text: text,
+                        existingItems: detectedItems
+                    )
+                    if !additionalItems.isEmpty {
+                        detectedItems = (detectedItems + additionalItems)
+                            .sorted { $0.range.lowerBound < $1.range.lowerBound }
+                    }
+
+                    // Generate context-preserving replacements
+                    let replacements = try await engine.generateContextAwareReplacements(
+                        text: text,
+                        items: detectedItems
+                    )
+                    for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+                        let replacement = replacements[item.id] ?? item.ghostToken
+                        result.replaceSubrange(item.range, with: replacement)
+                        applied[item.id] = replacement
+                    }
+                    handled = true
+                } catch {
+                    print("Foundation Models error: \(error), falling back")
+                }
+            }
+            #endif
+
+            if !handled {
+                // Priority 2: Ollama (if running + active model configured)
+                if let model = OllamaEngine.activeModel {
+                    do {
+                        let additionalItems = try await OllamaEngine.augmentDetection(
+                            text: text,
+                            existingItems: detectedItems
+                        )
+                        if !additionalItems.isEmpty {
+                            detectedItems = (detectedItems + additionalItems)
+                                .sorted { $0.range.lowerBound < $1.range.lowerBound }
+                        }
+                        let replacements = try await OllamaEngine.generateContextAwareReplacements(
+                            text: text,
+                            items: detectedItems
+                        )
+                        for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+                            let replacement = replacements[item.id]
+                                ?? item.alternatives.first(where: { $0.strategy == .semantic })?.text
+                                ?? item.ghostToken
+                            result.replaceSubrange(item.range, with: replacement)
+                            applied[item.id] = replacement
+                        }
+                        handled = true
+                    } catch {
+                        print("Ollama error (\(model)): \(error), falling back")
                     }
                 }
-                await MainActor.run {
-                    ghostedText = result
-                    privacyScore = calculateScore(items: detectedItems)
-                    GhostMappingStore.shared.storeBatch(items: detectedItems)
-                }
-                return
             }
 
-            do {
-                // Generate context-aware replacements
-                let replacements = try await mlxEngine.generateContextAwareReplacements(
-                    text: text,
-                    items: detectedItems
-                )
-
-                // Apply replacements
-                for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-                    let replacement = replacements[item.id] ?? item.ghostToken
-                    result.replaceSubrange(item.range, with: replacement)
+            if !handled {
+                // Priority 3: MLX engine (if installed)
+                if let mlxEngine = mlxEngine {
+                    do {
+                        let replacements = try await mlxEngine.generateContextAwareReplacements(
+                            text: text,
+                            items: detectedItems
+                        )
+                        for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+                            let replacement = replacements[item.id] ?? item.ghostToken
+                            result.replaceSubrange(item.range, with: replacement)
+                            applied[item.id] = replacement
+                        }
+                        handled = true
+                    } catch {
+                        print("MLX error: \(error), falling back to semantic")
+                    }
                 }
 
-                // Store semantic context for UI display
-                let context = await SemanticAnalyzer().analyze(text: text, items: detectedItems)
-                await MainActor.run {
-                    semanticContext = context
-                }
-            } catch {
-                print("LLM-Aware mode error: \(error), falling back to semantic")
-                // Fallback to semantic mode
-                for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-                    if let semanticAlt = item.alternatives.first(where: { $0.strategy == .semantic }) {
-                        result.replaceSubrange(item.range, with: semanticAlt.text)
-                    } else {
-                        result.replaceSubrange(item.range, with: item.ghostToken)
+                if !handled {
+                    // Priority 3: Semantic fallback
+                    for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
+                        if let semanticAlt = item.alternatives.first(where: { $0.strategy == .semantic }) {
+                            result.replaceSubrange(item.range, with: semanticAlt.text)
+                            applied[item.id] = semanticAlt.text
+                        } else {
+                            result.replaceSubrange(item.range, with: item.ghostToken)
+                            applied[item.id] = item.ghostToken
+                        }
                     }
                 }
             }
@@ -165,6 +241,7 @@ final class PIIDetector: ObservableObject {
 
         await MainActor.run {
             ghostedText = result
+            appliedReplacements = applied
             privacyScore = calculateScore(items: detectedItems)
             GhostMappingStore.shared.storeBatch(items: detectedItems)
         }
@@ -192,17 +269,12 @@ final class PIIDetector: ObservableObject {
 
     /// Add a manually-tagged PII item at the specified range
     func addManualTag(range: Range<String.Index>, type: PIIType, in text: String) throws {
-        // Validate range is within text bounds
         guard range.lowerBound >= text.startIndex && range.upperBound <= text.endIndex else {
             throw PIIError.invalidRange
         }
-
-        // Validate range is not empty
         guard range.lowerBound < range.upperBound else {
             throw PIIError.emptySelection
         }
-
-        // Validate range doesn't overlap existing items
         guard !hasOverlap(newRange: range, with: detectedItems) else {
             throw PIIError.rangeOverlap
         }
@@ -216,7 +288,7 @@ final class PIIDetector: ObservableObject {
             originalText: selectedText,
             alternatives: alternatives,
             selectedAlternativeId: alternatives.first?.id ?? UUID(),
-            confidence: 1.0, // Manual tags = 100% confidence
+            confidence: 1.0,
             isMasked: true,
             isManual: true
         )
@@ -226,7 +298,6 @@ final class PIIDetector: ObservableObject {
 
         remask(originalText: text)
 
-        // Store in GhostMappingStore for rehydration
         GhostMappingStore.shared.store(
             token: manualItem.ghostToken,
             original: selectedText,

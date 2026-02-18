@@ -12,7 +12,7 @@ enum RedactionMode: String, CaseIterable, Codable {
         switch self {
         case .token: return "Maximum privacy"
         case .semantic: return "Balanced approach"
-        case .llmAware: return "Context preserved"
+        case .llmAware: return "Apple Intelligence"
         }
     }
 }

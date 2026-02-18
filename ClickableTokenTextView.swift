@@ -53,22 +53,41 @@ struct ClickableTokenTextView: NSViewRepresentable {
         ], range: NSRange(location: 0, length: result.length))
 
         // Style tokens and make them clickable
+        // Track which positions have been used to avoid duplicate links
+        var usedRanges: Set<Int> = []
+
         for item in items {
-            let tokenRange = (text as NSString).range(of: item.ghostToken)
-            guard tokenRange.location != NSNotFound else { continue }
+            // Find the FIRST unused occurrence of this token
+            var searchRange = NSRange(location: 0, length: (text as NSString).length)
 
-            // Token styling
-            let tokenFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
-            let tokenColor = NSColor.labelColor
-            let backgroundColor = nsColor(from: item.type.highlightColor)
+            while searchRange.location < (text as NSString).length {
+                let foundRange = (text as NSString).range(of: item.ghostToken, range: searchRange)
+                guard foundRange.location != NSNotFound else { break }
 
-            result.addAttributes([
-                .font: tokenFont,
-                .foregroundColor: tokenColor,
-                .backgroundColor: backgroundColor,
-                .link: item.id.uuidString, // Use UUID as link
-                .underlineStyle: 0 // No underline
-            ], range: tokenRange)
+                // Only apply link if this position hasn't been used yet
+                if !usedRanges.contains(foundRange.location) {
+                    // Token styling
+                    let tokenFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
+                    let tokenColor = NSColor.labelColor
+                    let backgroundColor = nsColor(from: item.type.highlightColor)
+
+                    result.addAttributes([
+                        .font: tokenFont,
+                        .foregroundColor: tokenColor,
+                        .backgroundColor: backgroundColor,
+                        .link: item.id.uuidString, // Use UUID as link
+                        .underlineStyle: 0 // No underline
+                    ], range: foundRange)
+
+                    // Mark this position as used
+                    usedRanges.insert(foundRange.location)
+                    break // Only link the first unused occurrence
+                }
+
+                // Move search range forward
+                searchRange.location = foundRange.location + foundRange.length
+                searchRange.length = (text as NSString).length - searchRange.location
+            }
         }
 
         return result

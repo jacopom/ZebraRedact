@@ -126,8 +126,23 @@ final class SemanticAnalyzer {
         let beforeText = String(text[..<item.range.lowerBound])
         let sentenceCount = beforeText.components(separatedBy: ".").count - 1
 
-        // Find position within current sentence
-        let currentSentenceStart = beforeText.lastIndex(of: ".") ?? text.startIndex
+        // Find position within current sentence.
+        // Search backwards in `text` (not in the derived `beforeText`) so the index
+        // stays valid for subscripting `text`. Using a beforeText-derived index on
+        // `text` causes a fatal "String index is out of bounds" crash.
+        let currentSentenceStart: String.Index
+        if let dotRange = text.range(of: ".", options: .backwards,
+                                     range: text.startIndex..<item.range.lowerBound) {
+            currentSentenceStart = dotRange.upperBound
+        } else {
+            currentSentenceStart = text.startIndex
+        }
+        // Guard against a malformed range (shouldn't happen, but be safe)
+        guard currentSentenceStart <= item.range.upperBound else {
+            return SyntacticPosition(sentenceIndex: sentenceCount,
+                                     positionInSentence: 0,
+                                     isBeginning: true, isEnding: false)
+        }
         let sentenceText = String(text[currentSentenceStart..<item.range.upperBound])
         let words = sentenceText.split(separator: " ")
         let position = words.count

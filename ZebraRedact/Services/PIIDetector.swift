@@ -40,9 +40,10 @@ final class PIIDetector: ObservableObject {
 
     init(modelManager: ModelManager? = nil) {
         self.modelManager = modelManager
-        if modelManager != nil {
-            self.mlxEngine = MLXContextEngine(modelManager: modelManager)
-        }
+        // Always initialize mlxEngine — SemanticAnalyzer (NaturalLanguage-based) works
+        // without a model manager and produces context-aware structural replacements
+        // (e.g. "project lead", "email address") that are distinct from Fake Data's random pool.
+        self.mlxEngine = MLXContextEngine(modelManager: modelManager)
         #if canImport(FoundationModels)
         if #available(macOS 26.0, *) {
             foundationEngine = FoundationModelEngine()

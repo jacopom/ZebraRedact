@@ -104,7 +104,14 @@ struct MainWindow: View {
         }
         .frame(minWidth: 820, minHeight: 540)
         .background(DesignSystem.Colors.background)
-        .sheet(isPresented: $showLLMSetupSheet) { LLMAwareSetupSheet() }
+        .sheet(isPresented: $showLLMSetupSheet, onDismiss: {
+            Task {
+                installedOllamaModels = (try? await OllamaEngine.listModels()) ?? []
+                if let saved = OllamaEngine.activeModel, saved != "none" {
+                    selectedAIModelId = saved
+                }
+            }
+        }) { LLMAwareSetupSheet() }
         .sheet(isPresented: $showManualTokenSheet) {
             ManualTokenSheet(
                 isPresented: $showManualTokenSheet,
@@ -235,9 +242,9 @@ struct MainWindow: View {
                         }
                         .pickerStyle(.radioGroup)
                         .onChange(of: detector.redactionMode) { _, mode in
-                            if mode != .llmAware {
-                                OllamaEngine.activeModel = nil
-                                selectedAIModelId = "none"
+                            if mode == .llmAware, selectedAIModelId != "none" {
+                                // Restore the active model when switching back into AI Classify
+                                OllamaEngine.activeModel = selectedAIModelId
                             }
                             if !inputText.isEmpty { detector.scan(text: inputText) }
                         }
@@ -261,6 +268,18 @@ struct MainWindow: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .onChange(of: selectedAIModelId) { _, modelId in
                             applyAIModelSelection(modelId)
+                        }
+
+                        // Backend status — always visible when in AI Classify mode
+                        if detector.redactionMode == .llmAware {
+                            HStack(spacing: 4) {
+                                Image(systemName: aiBackendStatus.icon)
+                                    .font(.system(size: 10))
+                                Text(aiBackendStatus.label)
+                                    .font(.system(size: 10))
+                            }
+                            .foregroundColor(aiBackendStatus.color)
+                            .padding(.top, 2)
                         }
 
                         if installedOllamaModels.isEmpty {
@@ -593,6 +612,19 @@ struct MainWindow: View {
     private func applyDomainPreset(_ preset: DomainPreset) {
         detector.enabledCategories = preset.enabledCategories
         if !inputText.isEmpty { detector.scan(text: inputText) }
+    }
+
+    /// Status of the active AI backend for the AI Classify mode.
+    /// Returns (label, color, SF symbol).
+    private var aiBackendStatus: (label: String, color: Color, icon: String) {
+        if detector.isFoundationModelsActive {
+            return ("Apple Intelligence", .green, "apple.intelligence")
+        }
+        if selectedAIModelId != "none" {
+            let shortName = selectedAIModelId.components(separatedBy: ":").first ?? selectedAIModelId
+            return ("Ollama · \(shortName)", .green, "antenna.radiowaves.left.and.right")
+        }
+        return ("NL Analysis (no model)", .orange, "wand.and.sparkles")
     }
 
     private func applyAIModelSelection(_ modelId: String) {

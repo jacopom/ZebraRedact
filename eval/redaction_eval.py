@@ -528,6 +528,363 @@ Intervista a Jimmy Wales, il fondatore di Wikipedia: "Con Trump rischiamo il fas
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# SUITE 1 — COREFERENCE CONSISTENCY
+# Same entity, multiple surface forms.  All should be treated uniformly.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class ConsistencyCase:
+    name:          str
+    description:   str
+    text:          str
+    # list of (canonical_name, [surface_form, …])
+    entity_groups: list[tuple[str, list[str]]]
+
+CONSISTENCY_CASES: list[ConsistencyCase] = [
+    ConsistencyCase(
+        name="Multi-Form Person Reference",
+        description="Same CFO mentioned as full name, first name, surname, initial, and role",
+        entity_groups=[("Jonathan Reed", ["Jonathan Reed", "Jonathan", "Reed", "J. Reed"])],
+        text="""\
+Jonathan Reed (CFO) opened the budget review at 9 AM.
+Jonathan confirmed the Q3 figures were accurate.
+Reed signed the capital-expenditure approval at 15:07.
+The CFO later denied any prior knowledge of the pricing discrepancy.
+HR records show J. Reed joined from Goldman in 2019.
+An anonymous source close to him suggested the board was misled.
+""",
+    ),
+    ConsistencyCase(
+        name="Company Alias Chain",
+        description="Same company referred to by full name, acronym, shortened form, and 'the company'",
+        entity_groups=[("Meridian Financial Group",
+                        ["Meridian Financial Group", "MFG", "Meridian"])],
+        text="""\
+Meridian Financial Group reported record pre-tax profits of $340M last quarter.
+MFG's trading desk outperformed all peer firms by a wide margin.
+The company issued a brief press release on Friday afternoon.
+Meridian confirmed the acquisition of CrossBay Capital via its IR team.
+Insiders say the firm plans to rebrand within 18 months.
+""",
+    ),
+    ConsistencyCase(
+        name="Patient Coreference Chain",
+        description="Patient named once then referred to by pronouns and role — all should be hidden",
+        entity_groups=[("Robert Castillo", ["Robert Castillo", "Mr. Castillo", "Robert"])],
+        text="""\
+Robert Castillo was admitted on February 22 with chest pain.
+Mr. Castillo's ECG showed non-specific ST changes.
+Robert denied any prior cardiac history during intake.
+He is currently on lisinopril 10 mg and atorvastatin 40 mg.
+The patient's wife confirmed he had not taken his morning dose.
+""",
+    ),
+]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 2 — ADVERSARIAL EVASION
+# PII deliberately formatted to defeat pattern matching.
+# ─────────────────────────────────────────────────────────────────────────────
+
+ADVERSARIAL_CASES: list[TestCase] = [
+    TestCase(
+        name="Obfuscated Contacts",
+        category="Adversarial",
+        description="Email (bracket notation), phone (extra spaces), SSN (spaces not dashes)",
+        known_pii=["j.harrison@nexacorp.com", "415 882 0031", "472-18-3901"],
+        text="""\
+Reach me at j.harrison AT nexacorp DOT com for the contract draft.
+Call 415 882 00 31 if urgent — I'm on Pacific time.
+SSN on file: 472 18 3901 (spaces, not dashes — old HR format).
+Backup line: (415).882.0031.
+""",
+    ),
+    TestCase(
+        name="Split and Encoded Credentials",
+        category="Adversarial",
+        description="API key split across lines, IP in hex/decimal mix, token in URL fragment",
+        known_pii=["sk_prod_ABC123XYZ789mno456", "10.0.4.12", "ghp_TokenABCDEF1234567890xy"],
+        text="""\
+Production key (parts concatenated at runtime):
+  part1 = "sk_prod_"
+  part2 = "ABC123XYZ789mno456"
+
+DB server at 0x0A00040C  (= 10.0.4.12 in hex).
+Auth header expected: Bearer ghp_TokenABCDEF1234567890xy
+Docs at https://internal.company.com/wiki#token=ghp_TokenABCDEF1234567890xy
+""",
+    ),
+    TestCase(
+        name="Implicit Identity (No Name)",
+        category="Adversarial",
+        description="No name present — identity fully recoverable from role + org + location + year",
+        known_pii=["identity of the individual described"],
+        text="""\
+The only female named partner at the firm's Austin office, who transferred
+from the New York litigation group in 2021 after clerking for the Ninth Circuit,
+and who leads the fintech regulatory practice, approved the client filing.
+Her compensation exceeded $2.1M last year according to the partnership agreement.
+""",
+    ),
+    TestCase(
+        name="PII in Structured Data",
+        category="Adversarial",
+        description="PII embedded in JSON keys, SQL, and log lines — not natural language",
+        known_pii=["alice@corp.com", "192.168.1.105", "4111-1111-1111-1111"],
+        text="""\
+SELECT * FROM users WHERE email = 'alice@corp.com' AND active = 1;
+
+{"user": {"email": "alice@corp.com", "ip": "192.168.1.105", "card_last4": "1111"}}
+
+2024-03-19T03:14:22Z INFO  payment charged card=4111-1111-1111-1111 user=alice@corp.com
+""",
+    ),
+]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 3 — DOMAIN BLIND SPOTS
+# Document types the base test corpus doesn't cover.
+# ─────────────────────────────────────────────────────────────────────────────
+
+DOMAIN_CASES: list[TestCase] = [
+    TestCase(
+        name="Legal Filing",
+        category="Legal",
+        description="Federal complaint with case number, bar ID, party names, and counsel email",
+        known_pii=[
+            "Elena Vasquez", "TerraForm Holdings LLC",
+            "Case No. 24-CV-08812", "Bar No. CA-291847",
+            "elena.vasquez@counsel.com",
+        ],
+        text="""\
+IN THE UNITED STATES DISTRICT COURT
+NORTHERN DISTRICT OF CALIFORNIA
+
+Case No. 24-CV-08812
+
+PLAINTIFF: Elena Vasquez
+v.
+DEFENDANT: TerraForm Holdings LLC
+
+Counsel for Plaintiff: David Osei, Esq.
+Bar No. CA-291847 | elena.vasquez@counsel.com
+
+COMPLAINT FOR BREACH OF FIDUCIARY DUTY
+
+Plaintiff Elena Vasquez alleges that TerraForm Holdings LLC, through its
+managing partners, misappropriated $2.1M in restricted stock grants between
+January and September 2023. Plaintiff demands compensatory damages, disgorgement,
+and injunctive relief.
+
+JURY TRIAL DEMANDED.
+""",
+    ),
+    TestCase(
+        name="HR Compensation Record",
+        category="HR",
+        description="Salary adjustment memo with employee ID, level, manager chain, and equity",
+        known_pii=[
+            "Priya Mehta", "EMP-00419",
+            "priya.mehta@techcorp.com", "$198,000", "$214,000",
+        ],
+        text="""\
+COMPENSATION ADJUSTMENT — CONFIDENTIAL
+
+Employee:   Priya Mehta (EMP-00419)
+Level:      L6 Senior Engineer
+Manager:    Carlos Webb (L7, EMP-00271)
+Department: Platform Infrastructure
+
+Current Base:   $198,000
+Proposed Base:  $214,000  (+8.1%)
+Equity Refresh: 800 RSUs vesting over 4 years
+Bonus Target:   20% of base
+
+Effective: April 1, 2024
+Approved by: VP People Operations
+
+HR contact: priya.mehta@techcorp.com for acknowledgement signature.
+""",
+    ),
+    TestCase(
+        name="Source Code with Hardcoded Secrets",
+        category="Engineering",
+        description="Production config with DB connection string, API keys, and internal hostnames",
+        known_pii=[
+            "postgres://admin:S3cr3tPass@db.internal.company.com:5432/prod",
+            "sk_live_51HxxxxxxxxxxxxxxxxxxxxABCDEF",
+            "whsec_abc123def456ghi789",
+            "db.internal.company.com",
+        ],
+        text="""\
+# config/production.yml  — DO NOT COMMIT
+
+database:
+  url: postgres://admin:S3cr3tPass@db.internal.company.com:5432/prod
+  pool_size: 20
+
+cache:
+  url: redis://cache.internal:6379
+  ttl: 3600
+
+stripe:
+  secret_key: sk_live_51HxxxxxxxxxxxxxxxxxxxxABCDEF
+  webhook_secret: whsec_abc123def456ghi789
+
+sentry:
+  dsn: https://abc123@o12345.ingest.sentry.io/67890
+
+feature_flags:
+  new_checkout: true
+  beta_users: [user_1234, user_5678]
+""",
+    ),
+    TestCase(
+        name="Financial Due Diligence Memo",
+        category="Finance",
+        description="M&A memo with CUSIP, fund name, target company, and deal economics",
+        known_pii=[
+            "NovaBridge Capital Partners III",
+            "Arcturus Semiconductor GmbH",
+            "CUSIP 64110L106",
+            "Hans-Peter Kohl",
+            "€180M", "7.2x EBITDA",
+        ],
+        text="""\
+CONFIDENTIAL — INVESTMENT COMMITTEE MEMO
+
+Fund:    NovaBridge Capital Partners III
+Target:  Arcturus Semiconductor GmbH (Munich)
+CUSIP:   64110L106 (parent listed entity)
+Contact: Hans-Peter Kohl, CEO (h.kohl@arcturus.de)
+
+DEAL ECONOMICS
+Proposed enterprise value:  €180M  (7.2x trailing EBITDA)
+Equity check:               €95M
+Debt financing:             €85M (term loan, L+375bps)
+Expected IRR:               24–28% (base case)
+
+DILIGENCE STATUS
+Financial:  Complete (PwC signed off March 14)
+Legal:      In progress — environmental liabilities flagged
+Technology: Pending — source code audit scheduled April 2
+
+IC vote required by April 10, 2024.
+""",
+    ),
+]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 4 — CROSS-REFERENCE PAIRS
+# Two documents, each safe alone — together they re-identify.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class CrossRefPair:
+    name:         str
+    description:  str
+    doc_a:        str
+    doc_b:        str
+    target:       str   # what gets exposed when both are combined
+    known_pii_a:  list[str]
+    known_pii_b:  list[str]
+
+CROSSREF_PAIRS: list[CrossRefPair] = [
+    CrossRefPair(
+        name="Offer Letter + Org Chart",
+        description=(
+            "Doc A: offer letter (no name, but exact comp). "
+            "Doc B: org chart update (name + role). "
+            "Combined: full compensation profile of a named individual."
+        ),
+        doc_a="""\
+OFFER LETTER
+
+Congratulations! We are pleased to extend an offer for the role of VP of Engineering
+at our Series B startup in San Francisco.
+
+Compensation package:
+  Base salary:    $310,000
+  Equity:         0.8% (4-year vest, 1-year cliff)
+  Signing bonus:  $25,000
+
+Start date: June 3, 2024.  Reports to: CEO.
+""",
+        doc_b="""\
+ORG CHART UPDATE — Q2 2024
+
+Marcus Webb joins as VP of Engineering, reporting to CEO Priya Kapoor.
+Prior role: Head of Platform at DataStream Inc.
+Location: San Francisco office.
+Slack: @marcus.webb | marcus.webb@company.com
+""",
+        target="Marcus Webb's exact compensation and equity package",
+        known_pii_a=["$310,000", "0.8%", "$25,000"],
+        known_pii_b=["Marcus Webb", "Priya Kapoor", "DataStream Inc.", "marcus.webb@company.com"],
+    ),
+    CrossRefPair(
+        name="Clinical Note + Appointment Schedule",
+        description=(
+            "Doc A: clinical note with MRN only (no patient name, but sensitive diagnosis). "
+            "Doc B: appointment schedule linking MRN to full name. "
+            "Combined: HIPAA-level breach — name + psychiatric diagnosis."
+        ),
+        doc_a="""\
+CLINICAL NOTE — MRN 00847219
+Date: February 22, 2024
+
+Chief complaint: Recurrent depressive episodes, third inpatient admission this year.
+PHQ-9 score: 19 (severe). Current meds: sertraline 100mg, bupropion 150mg.
+Discussed ECT as escalation option. Patient consented to 6-week trial.
+Discharge target: March 1 pending response to medication adjustment.
+""",
+        doc_b="""\
+APPOINTMENT SCHEDULE — MARCH 2024
+
+09:00 — Robert Castillo (MRN 00847219) — Dr. Osei follow-up
+11:30 — Maria Santos (MRN 00291047) — intake assessment
+14:00 — David Park (MRN 00391822) — medication review
+""",
+        target="Robert Castillo's psychiatric diagnosis, ECT consent, and admission history",
+        known_pii_a=["MRN 00847219"],
+        known_pii_b=["Robert Castillo", "MRN 00847219"],
+    ),
+    CrossRefPair(
+        name="Whistleblower Complaint + Directory",
+        description=(
+            "Doc A: anonymous complaint describing the whistleblower's role and department. "
+            "Doc B: department directory. "
+            "Combined: anonymous source is fully identifiable."
+        ),
+        doc_a="""\
+ANONYMOUS COMPLAINT — submitted via ethics hotline
+
+I am the only woman on the 4-person derivatives structuring team in the London office.
+I have been excluded from client calls since raising concerns about model risk
+in Q3 2023. My direct manager has since given me a below-target review.
+I am filing this complaint under the firm's whistleblower policy.
+""",
+        doc_b="""\
+DERIVATIVES STRUCTURING — LONDON TEAM DIRECTORY
+
+  James Thornton    — VP, Rates Structuring
+  Aiko Nakamura     — Associate, Credit Derivatives
+  Sophie Laurent    — Analyst, Equity Structuring
+  Kevin O'Brien     — Analyst, FX Derivatives
+
+Manager: Richard Hale (Managing Director)
+""",
+        target="Sophie Laurent as the whistleblower",
+        known_pii_a=["identity of the complainant"],
+        known_pii_b=["Sophie Laurent", "Aiko Nakamura", "James Thornton"],
+    ),
+]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # REDACTION IMPLEMENTATIONS
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -651,6 +1008,36 @@ class CaseResult:
     modes:      dict[str, ModeResult] = field(default_factory=dict)
 
 
+@dataclass
+class ConsistencyResult:
+    case:        ConsistencyCase
+    mode:        str
+    form_audit:  dict[str, bool]   # surface_form: True if removed
+    assessment:  str               # Claude's implicit-reference verdict
+    tokens:      int
+
+
+@dataclass
+class CrossRefResult:
+    pair:          CrossRefPair
+    mode:          str
+    reidentified:  bool
+    what_revealed: str
+    tokens:        int
+
+
+@dataclass
+class ExtendedResults:
+    consistency:  list[ConsistencyResult]      = field(default_factory=list)
+    adversarial:  list[CaseResult]             = field(default_factory=list)
+    # {case_name: {mode: (could_identify, identified_as)}}
+    reid_map:     dict                         = field(default_factory=dict)
+    domain:       list[CaseResult]             = field(default_factory=list)
+    crossref:     list[CrossRefResult]         = field(default_factory=list)
+    longitudinal: dict[str, tuple]             = field(default_factory=dict)
+    corrections:  dict                         = field(default_factory=dict)
+
+
 def compute_recall(known_pii: list[str], redacted_text: str) -> tuple[float, list[str]]:
     """Check how many known PII strings are still present verbatim in the redacted text."""
     still_present = [item for item in known_pii
@@ -719,6 +1106,270 @@ Respond with a JSON object ONLY — no markdown, no explanation outside the JSON
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# EXTENDED EVALUATIONS (suites 1–6)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _parse_json_response(raw: str) -> dict:
+    raw = raw.strip()
+    raw = re.sub(r'^```(?:json)?\s*', '', raw)
+    raw = re.sub(r'\s*```$', '', raw)
+    return json.loads(raw)
+
+
+# Suite 2 — Re-identification attack ─────────────────────────────────────────
+
+def test_reidentification(
+    client: anthropic.Anthropic,
+    redacted: str,
+    target_hint: str = "",
+) -> tuple[bool, str, int]:
+    """
+    Adversary test: given only the redacted text, can you name the subject?
+    Returns (could_identify, what_was_identified, tokens).
+    """
+    hint_line = f"Hint about what to look for: {target_hint}\n\n" if target_hint else ""
+    prompt = f"""\
+You are an adversary. Using ONLY the redacted text below — no external knowledge —
+try to identify specific real people, companies, events, or sensitive facts.
+{hint_line}Redacted text:
+\"\"\"
+{redacted}
+\"\"\"
+
+Respond with JSON only:
+{{
+  "could_identify": true|false,
+  "identified_as": "<what you could identify, or null>",
+  "confidence": "high|medium|low",
+  "reasoning": "<how you reached this conclusion>"
+}}"""
+    resp = client.messages.create(
+        model="claude-haiku-4-5-20251001", max_tokens=512,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    tokens = resp.usage.input_tokens + resp.usage.output_tokens
+    try:
+        data = _parse_json_response(resp.content[0].text)
+        return data.get("could_identify", False), data.get("identified_as") or "", tokens
+    except (json.JSONDecodeError, KeyError):
+        return False, "(parse error)", tokens
+
+
+# Suite 1 — Coreference consistency ──────────────────────────────────────────
+
+def test_consistency(
+    client: anthropic.Anthropic,
+    case: ConsistencyCase,
+    redacted: str,
+) -> tuple[dict[str, bool], str, int]:
+    """
+    Check whether every surface form of each entity was removed.
+    Also asks Claude whether implicit references (pronouns, role-only) remain.
+    Returns ({form: was_removed}, claude_assessment, tokens).
+    """
+    form_results: dict[str, bool] = {}
+    for _, forms in case.entity_groups:
+        for form in forms:
+            form_results[form] = form.lower() not in redacted.lower()
+
+    lines = "\n".join(
+        f"  {'✓' if removed else '✗'} '{form}' — {'removed' if removed else 'STILL PRESENT'}"
+        for form, removed in form_results.items()
+    )
+    prompt = f"""\
+A document was redacted. The same entity appears under multiple surface forms.
+
+Verbatim-form audit:
+{lines}
+
+Redacted text:
+\"\"\"
+{redacted}
+\"\"\"
+
+Are there remaining IMPLICIT references (pronouns like "he/she/they", role-only
+phrases like "the CFO", or possessives like "his decision") that still point to
+the same entity and allow re-identification?
+
+Respond with JSON only:
+{{
+  "consistent": true|false,
+  "residual_references": ["<each remaining implicit reference>"],
+  "assessment": "<one sentence>"
+}}"""
+    resp = client.messages.create(
+        model="claude-haiku-4-5-20251001", max_tokens=512,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    tokens = resp.usage.input_tokens + resp.usage.output_tokens
+    try:
+        data = _parse_json_response(resp.content[0].text)
+        return form_results, data.get("assessment", ""), tokens
+    except (json.JSONDecodeError, KeyError):
+        return form_results, "(parse error)", tokens
+
+
+# Suite 3 — Cross-reference attack ────────────────────────────────────────────
+
+def test_cross_reference(
+    client: anthropic.Anthropic,
+    pair: CrossRefPair,
+    redacted_a: str,
+    redacted_b: str,
+) -> tuple[bool, str, int]:
+    """
+    Combine two independently-redacted documents and check whether together
+    they re-expose the target information.
+    Returns (reidentified, what_was_revealed, tokens).
+    """
+    combined = f"--- Document 1 ---\n{redacted_a}\n\n--- Document 2 ---\n{redacted_b}"
+    prompt = f"""\
+Two documents were redacted independently. Read them TOGETHER and determine
+whether the combination reveals: {pair.target}
+
+Combined documents:
+\"\"\"
+{combined}
+\"\"\"
+
+Respond with JSON only:
+{{
+  "reidentified": true|false,
+  "what_was_revealed": "<specific information recovered, or null>",
+  "mechanism": "<how the two documents together leaked this, or null>"
+}}"""
+    resp = client.messages.create(
+        model="claude-haiku-4-5-20251001", max_tokens=512,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    tokens = resp.usage.input_tokens + resp.usage.output_tokens
+    try:
+        data = _parse_json_response(resp.content[0].text)
+        return data.get("reidentified", False), data.get("what_was_revealed") or "", tokens
+    except (json.JSONDecodeError, KeyError):
+        return False, "(parse error)", tokens
+
+
+# Suite 5 — Task utility ──────────────────────────────────────────────────────
+
+def test_task_utility(
+    client: anthropic.Anthropic,
+    original: str,
+    redacted: str,
+    task: str,
+) -> tuple[float, str, int]:
+    """
+    Ask Claude to complete `task` on both original and redacted text, then score
+    how much utility the redacted version preserves (0.0 = useless, 1.0 = identical).
+    """
+    def ask(text: str) -> tuple[str, int]:
+        r = client.messages.create(
+            model="claude-haiku-4-5-20251001", max_tokens=300,
+            messages=[{"role": "user", "content": f"{task}\n\nText:\n{text}"}],
+        )
+        return r.content[0].text.strip(), r.usage.input_tokens + r.usage.output_tokens
+
+    ans_orig, tok1 = ask(original)
+    ans_red,  tok2 = ask(redacted)
+
+    judge = client.messages.create(
+        model="claude-haiku-4-5-20251001", max_tokens=256,
+        messages=[{"role": "user", "content": f"""\
+Task: {task}
+
+Answer from ORIGINAL (unredacted) text:
+{ans_orig}
+
+Answer from REDACTED text:
+{ans_red}
+
+Score how well the redacted answer serves the same purpose as the original.
+1.0 = identical utility, 0.0 = completely unusable.
+
+Respond with JSON only: {{"score": 0.0, "explanation": "..."}}
+"""}],
+    )
+    tok3 = judge.usage.input_tokens + judge.usage.output_tokens
+    try:
+        data = _parse_json_response(judge.content[0].text)
+        return float(data.get("score", 0.5)), data.get("explanation", ""), tok1 + tok2 + tok3
+    except (json.JSONDecodeError, ValueError, KeyError):
+        return 0.5, "(parse error)", tok1 + tok2 + tok3
+
+
+# Suite 6 — Longitudinal stability ────────────────────────────────────────────
+
+def test_longitudinal(redact_fn, text: str, runs: int = 3) -> tuple[bool, str]:
+    """
+    Run the same redaction function N times and verify token assignments are stable.
+    Returns (is_stable, diff_description).
+    """
+    outputs = [redact_fn(text)[0] for _ in range(runs)]
+    if all(o == outputs[0] for o in outputs):
+        return True, f"All {runs} runs produced identical output."
+    for i in range(1, runs):
+        if outputs[i] != outputs[0]:
+            lines_a = outputs[0].splitlines()
+            lines_b = outputs[i].splitlines()
+            diffs = [(n + 1, a, b)
+                     for n, (a, b) in enumerate(zip(lines_a, lines_b)) if a != b]
+            if diffs:
+                ln, a, b = diffs[0]
+                return False, f"Run {i+1} differs at line {ln}: «{a[:50]}» vs «{b[:50]}»"
+    return False, "Outputs differ in length between runs."
+
+
+# Suite 4 — User correction logger ────────────────────────────────────────────
+
+CORRECTIONS_PATH = os.path.join(os.path.dirname(__file__), "corrections.jsonl")
+
+def log_correction(
+    correction_type: str,   # "false_positive" | "false_negative"
+    original_text:   str,
+    corrected_to:    str,
+    context:         str = "",
+    path:            str = CORRECTIONS_PATH,
+) -> None:
+    """
+    Append a labelled correction to corrections.jsonl for future analysis.
+    false_positive = tool over-redacted (user hit Restore Original).
+    false_negative = tool missed it (user manually tagged it).
+    """
+    entry = {
+        "ts":              time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "correction_type": correction_type,
+        "original_text":   original_text,
+        "corrected_to":    corrected_to,
+        "context":         context[:300],
+    }
+    with open(path, "a") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def summarise_corrections(path: str = CORRECTIONS_PATH) -> dict:
+    """Read corrections.jsonl and return summary statistics."""
+    if not os.path.isfile(path):
+        return {"total": 0, "false_positive": 0, "false_negative": 0, "examples": []}
+    entries = []
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+    fp = sum(1 for e in entries if e.get("correction_type") == "false_positive")
+    fn = sum(1 for e in entries if e.get("correction_type") == "false_negative")
+    return {
+        "total": len(entries),
+        "false_positive": fp,
+        "false_negative": fn,
+        "examples": entries[-5:],   # last 5 corrections
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # RUNNER
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -765,6 +1416,94 @@ def run_case(
         )
 
     return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EXTENDED RUNNER
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _do_redact(client: anthropic.Anthropic, mode: str, text: str) -> str:
+    """Dispatch to the right redaction function and return just the redacted text."""
+    if mode == "token":
+        return redact_token(text)[0]
+    elif mode == "fake":
+        return redact_fake(text)[0]
+    else:
+        return redact_ai(client, text)[0]
+
+
+def run_extended(
+    client: anthropic.Anthropic,
+    suites: list[str],
+    modes: list[str],
+) -> ExtendedResults:
+    ext = ExtendedResults()
+
+    if "consistency" in suites:
+        print(dim("\n  [Suite: Consistency]"))
+        for cc in CONSISTENCY_CASES:
+            print(dim(f"    {cc.name} …"), end="", flush=True)
+            for mode in modes:
+                redacted = _do_redact(client, mode, cc.text)
+                form_audit, assessment, tokens = test_consistency(client, cc, redacted)
+                ext.consistency.append(ConsistencyResult(
+                    case=cc, mode=mode,
+                    form_audit=form_audit, assessment=assessment, tokens=tokens,
+                ))
+            print(dim(" done"))
+
+    if "adversarial" in suites:
+        print(dim("\n  [Suite: Adversarial]"))
+        for case in ADVERSARIAL_CASES:
+            print(dim(f"    {case.name} …"), end="", flush=True)
+            cr = run_case(client, case, modes)
+            ext.adversarial.append(cr)
+            ext.reid_map[case.name] = {}
+            for mode, mr in cr.modes.items():
+                could_id, identified_as, _ = test_reidentification(client, mr.redacted_text)
+                ext.reid_map[case.name][mode] = (could_id, identified_as)
+            print(dim(" done"))
+
+    if "domain" in suites:
+        print(dim("\n  [Suite: Domain]"))
+        for case in DOMAIN_CASES:
+            print(dim(f"    {case.name} …"), end="", flush=True)
+            cr = run_case(client, case, modes)
+            ext.domain.append(cr)
+            print(dim(" done"))
+
+    if "crossref" in suites:
+        print(dim("\n  [Suite: Cross-Reference]"))
+        for pair in CROSSREF_PAIRS:
+            print(dim(f"    {pair.name} …"), end="", flush=True)
+            for mode in modes:
+                redacted_a = _do_redact(client, mode, pair.doc_a)
+                redacted_b = _do_redact(client, mode, pair.doc_b)
+                reidentified, what, tokens = test_cross_reference(
+                    client, pair, redacted_a, redacted_b
+                )
+                ext.crossref.append(CrossRefResult(
+                    pair=pair, mode=mode,
+                    reidentified=reidentified, what_revealed=what, tokens=tokens,
+                ))
+            print(dim(" done"))
+
+    if "longitudinal" in suites:
+        print(dim("\n  [Suite: Longitudinal]"))
+        sample_text = TEST_CASES[0].text
+        for mode in modes:
+            if mode == "ai":
+                continue   # skip AI — too expensive and non-deterministic
+            fn = redact_token if mode == "token" else redact_fake
+            print(dim(f"    {mode} (3 runs) …"), end="", flush=True)
+            stable, msg = test_longitudinal(fn, sample_text)
+            ext.longitudinal[mode] = (stable, msg)
+            print(dim(" done"))
+
+    if "corrections" in suites:
+        ext.corrections = summarise_corrections()
+
+    return ext
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -861,6 +1600,119 @@ def print_report(results: list[CaseResult]) -> None:
     print()
 
 
+def print_extended_report(ext: ExtendedResults) -> None:
+    w = 72
+    print()
+    print(bold("━" * w))
+    print(bold("  ZebraRedact — Extended Evaluation Suite"))
+    print(bold("━" * w))
+
+    # ── Coreference Consistency ───────────────────────────────────────────────
+    if ext.consistency:
+        print()
+        print(bold("  SUITE 1 — Coreference Consistency"))
+        print(dim("  Same entity in multiple surface forms — all must be removed"))
+        print()
+        by_case: dict[str, list[ConsistencyResult]] = {}
+        for r in ext.consistency:
+            by_case.setdefault(r.case.name, []).append(r)
+        for case_name, results in by_case.items():
+            print(f"  {cyan(case_name)}")
+            for r in results:
+                n_removed = sum(r.form_audit.values())
+                n_total   = len(r.form_audit)
+                all_ok    = n_removed == n_total
+                status    = green(f"✓ {n_removed}/{n_total}") if all_ok else red(f"✗ {n_removed}/{n_total}")
+                print(f"    {bold(f'{r.mode.upper():<8}')} Forms removed: {status}")
+                for form, removed in r.form_audit.items():
+                    icon = green("✓") if removed else red("✗")
+                    print(f"             {icon} {dim(repr(form))}")
+                if r.assessment:
+                    print(f"           → {dim(textwrap.shorten(r.assessment, 62))}")
+            print()
+
+    # ── Adversarial Evasion ───────────────────────────────────────────────────
+    if ext.adversarial:
+        print(bold("  SUITE 2 — Adversarial Evasion + Re-Identification"))
+        print(dim("  PII formatted to defeat pattern matching; adversary re-ID test"))
+        print()
+        for cr in ext.adversarial:
+            print(f"  {cyan(cr.case.name)}")
+            print(dim(f"  {cr.case.description}"))
+            for mode, mr in cr.modes.items():
+                reid = ext.reid_map.get(cr.case.name, {}).get(mode, (False, ""))
+                could_id, identified_as = reid
+                reid_str = red("re-identifiable") if could_id else green("not re-identifiable")
+                print(f"    {bold(f'{mode.upper():<8}')} Recall: {recall_bar(mr.recall, 12)}  |  {reid_str}")
+                if could_id and identified_as:
+                    print(f"             → {dim(textwrap.shorten(identified_as, 58))}")
+            print()
+
+    # ── Domain Blind Spots ────────────────────────────────────────────────────
+    if ext.domain:
+        print(bold("  SUITE 3 — Domain Blind Spots"))
+        print(dim("  Document types underrepresented in the base test corpus"))
+        print()
+        for cr in ext.domain:
+            print(f"  {cyan(cr.case.name)} {dim('[' + cr.case.category + ']')}")
+            for mode, mr in cr.modes.items():
+                print(f"    {bold(f'{mode.upper():<8}')} Recall: {recall_bar(mr.recall, 12)}  Risk: {risk_badge(mr.risk_level)}")
+                if mr.semantic_note:
+                    print(f"             {dim(textwrap.shorten(mr.semantic_note, 60))}")
+            print()
+
+    # ── Cross-Reference Attack ────────────────────────────────────────────────
+    if ext.crossref:
+        print(bold("  SUITE 4 — Cross-Reference Attack"))
+        print(dim("  Two documents safe alone — combined they re-identify"))
+        print()
+        by_pair: dict[str, list[CrossRefResult]] = {}
+        for r in ext.crossref:
+            by_pair.setdefault(r.pair.name, []).append(r)
+        for pair_name, results in by_pair.items():
+            print(f"  {cyan(pair_name)}")
+            for r in results:
+                icon = red("✗ LEAKED") if r.reidentified else green("✓ SAFE  ")
+                print(f"    {bold(f'{r.mode.upper():<8}')} {icon}")
+                if r.reidentified and r.what_revealed:
+                    print(f"             → {dim(textwrap.shorten(r.what_revealed, 58))}")
+            print()
+
+    # ── Longitudinal Stability ────────────────────────────────────────────────
+    if ext.longitudinal:
+        print(bold("  SUITE 5 — Longitudinal Stability"))
+        print(dim("  Same input → identical output across multiple runs"))
+        print()
+        for mode, (stable, msg) in ext.longitudinal.items():
+            icon = green("✓ STABLE  ") if stable else red("✗ UNSTABLE")
+            print(f"  {bold(f'{mode.upper():<10}')} {icon}  {dim(msg)}")
+        print()
+
+    # ── User Correction Log ───────────────────────────────────────────────────
+    if ext.corrections:
+        c = ext.corrections
+        print(bold("  SUITE 6 — User Correction Log"))
+        print(dim("  False positives / negatives logged during real use"))
+        print()
+        total = c.get("total", 0)
+        if total == 0:
+            print(dim("  No corrections logged yet."))
+        else:
+            fp = c.get("false_positive", 0)
+            fn = c.get("false_negative", 0)
+            print(f"  Total: {bold(str(total))}   "
+                  f"Over-redacted: {yellow(str(fp))}   "
+                  f"Missed: {red(str(fn))}")
+            if c.get("examples"):
+                print(f"\n  Last {len(c['examples'])} corrections:")
+                for ex in c["examples"]:
+                    tp = ex.get("correction_type", "?")
+                    ot = textwrap.shorten(ex.get("original_text", ""), 35)
+                    ct = textwrap.shorten(ex.get("corrected_to", ""), 20)
+                    print(f"    {dim(ex.get('ts', '')[:10])}  {tp:16}  {ot!r} → {ct!r}")
+        print()
+
+
 def save_json(results: list[CaseResult], path: str) -> None:
     out = []
     for cr in results:
@@ -890,15 +1742,27 @@ def save_json(results: list[CaseResult], path: str) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    ALL_SUITES = ["consistency", "adversarial", "domain", "crossref", "longitudinal", "corrections"]
+
     parser = argparse.ArgumentParser(description="ZebraRedact accuracy evaluation")
     parser.add_argument("--mode", choices=["token", "fake", "ai"],
                         help="Run only this mode (default: all three)")
     parser.add_argument("--case", metavar="NAME",
-                        help="Run only cases whose name contains NAME (case-insensitive)")
+                        help="Run only base cases whose name contains NAME (case-insensitive)")
+    parser.add_argument("--suite",
+                        choices=["base"] + ALL_SUITES + ["all"],
+                        default="base",
+                        help=(
+                            "Which evaluation suite to run (default: base). "
+                            "'base' = 9 core documents. "
+                            "'all' = every extended suite. "
+                            "Individual: consistency | adversarial | domain | crossref | "
+                            "longitudinal | corrections"
+                        ))
     parser.add_argument("--json", action="store_true",
-                        help="Save machine-readable results to eval/reports/latest.json")
+                        help="Save machine-readable results to eval/reports/")
     parser.add_argument("--show-redacted", action="store_true",
-                        help="Print the full redacted text for each case/mode")
+                        help="Print the full redacted text for each case/mode (base suite only)")
     args = parser.parse_args()
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -907,41 +1771,105 @@ def main() -> None:
         sys.exit(1)
 
     client = anthropic.Anthropic(api_key=api_key)
-
     modes = [args.mode] if args.mode else ["token", "fake", "ai"]
-    cases = TEST_CASES
-    if args.case:
-        cases = [c for c in TEST_CASES if args.case.lower() in c.name.lower()]
-        if not cases:
-            print(red(f"No cases matching '{args.case}'. Available:"))
-            for c in TEST_CASES:
-                print(f"  {c.name}")
-            sys.exit(1)
 
-    print(bold(f"\n  Running {len(modes)} mode(s) × {len(cases)} case(s) …"))
-    print(dim("  This calls the Anthropic API — each case takes 3–15 s.\n"))
+    # ── Base suite ────────────────────────────────────────────────────────────
+    if args.suite == "base":
+        cases = TEST_CASES
+        if args.case:
+            cases = [c for c in TEST_CASES if args.case.lower() in c.name.lower()]
+            if not cases:
+                print(red(f"No cases matching '{args.case}'. Available:"))
+                for c in TEST_CASES:
+                    print(f"  {c.name}")
+                sys.exit(1)
 
-    results: list[CaseResult] = []
-    for i, case in enumerate(cases, 1):
-        print(dim(f"  [{i}/{len(cases)}] {case.name} …"), end="", flush=True)
-        cr = run_case(client, case, modes)
-        results.append(cr)
-        print(dim(" done"))
+        print(bold(f"\n  Running {len(modes)} mode(s) × {len(cases)} case(s) …"))
+        print(dim("  This calls the Anthropic API — each case takes 3–15 s.\n"))
 
-        if args.show_redacted:
-            for mode, mr in cr.modes.items():
-                print(f"\n{'─'*60}")
-                print(bold(f"  {case.name} — {mode.upper()}"))
-                print("─"*60)
-                print(textwrap.indent(mr.redacted_text, "  "))
+        results: list[CaseResult] = []
+        for i, case in enumerate(cases, 1):
+            print(dim(f"  [{i}/{len(cases)}] {case.name} …"), end="", flush=True)
+            cr = run_case(client, case, modes)
+            results.append(cr)
+            print(dim(" done"))
 
-    print_report(results)
+            if args.show_redacted:
+                for mode, mr in cr.modes.items():
+                    print(f"\n{'─'*60}")
+                    print(bold(f"  {case.name} — {mode.upper()}"))
+                    print("─"*60)
+                    print(textwrap.indent(mr.redacted_text, "  "))
 
-    if args.json:
-        os.makedirs("eval/reports", exist_ok=True)
-        ts = time.strftime("%Y%m%d_%H%M%S")
-        path = f"eval/reports/{ts}.json"
-        save_json(results, path)
+        print_report(results)
+
+        if args.json:
+            os.makedirs("eval/reports", exist_ok=True)
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            path = f"eval/reports/{ts}.json"
+            save_json(results, path)
+
+    # ── Extended suites ───────────────────────────────────────────────────────
+    else:
+        suites = ALL_SUITES if args.suite == "all" else [args.suite]
+
+        n_docs = (
+            len(CONSISTENCY_CASES) * len(modes) * ("consistency" in suites) +
+            len(ADVERSARIAL_CASES) * ("adversarial" in suites) +
+            len(DOMAIN_CASES) * ("domain" in suites) +
+            len(CROSSREF_PAIRS) * len(modes) * ("crossref" in suites)
+        )
+        print(bold(f"\n  Extended suite(s): {', '.join(suites)}"))
+        print(dim(f"  Modes: {', '.join(modes)}  |  ~{n_docs} redaction calls + audit calls"))
+        print(dim("  Expect 1–5 min depending on suites selected.\n"))
+
+        ext = run_extended(client, suites, modes)
+        print_extended_report(ext)
+
+        if args.json:
+            os.makedirs("eval/reports", exist_ok=True)
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            path = f"eval/reports/{ts}_extended.json"
+            out: dict = {"suites": suites, "modes": modes}
+            if ext.consistency:
+                out["consistency"] = [
+                    {"case": r.case.name, "mode": r.mode,
+                     "form_audit": r.form_audit, "assessment": r.assessment}
+                    for r in ext.consistency
+                ]
+            if ext.adversarial:
+                out["adversarial"] = [
+                    {"case": cr.case.name, "modes": {
+                        mode: {
+                            "recall": round(mr.recall, 3),
+                            "risk": mr.risk_level,
+                            "reid": ext.reid_map.get(cr.case.name, {}).get(mode, (False, ""))[0],
+                        } for mode, mr in cr.modes.items()
+                    }} for cr in ext.adversarial
+                ]
+            if ext.domain:
+                out["domain"] = [
+                    {"case": cr.case.name, "modes": {
+                        mode: {"recall": round(mr.recall, 3), "risk": mr.risk_level}
+                        for mode, mr in cr.modes.items()
+                    }} for cr in ext.domain
+                ]
+            if ext.crossref:
+                out["crossref"] = [
+                    {"pair": r.pair.name, "mode": r.mode,
+                     "reidentified": r.reidentified, "what_revealed": r.what_revealed}
+                    for r in ext.crossref
+                ]
+            if ext.longitudinal:
+                out["longitudinal"] = {
+                    mode: {"stable": stable, "message": msg}
+                    for mode, (stable, msg) in ext.longitudinal.items()
+                }
+            if ext.corrections:
+                out["corrections"] = ext.corrections
+            with open(path, "w") as f:
+                json.dump(out, f, indent=2, ensure_ascii=False)
+            print(dim(f"\n  JSON saved → {path}"))
 
 
 if __name__ == "__main__":

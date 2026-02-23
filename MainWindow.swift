@@ -1,5 +1,12 @@
 import SwiftUI
 
+// MARK: - App Tab
+
+enum AppTab: String, CaseIterable {
+    case redact = "Redact"
+    case rehydrate = "Re-hydrate"
+}
+
 // MARK: - Domain Preset
 
 enum DomainPreset: String, CaseIterable, Identifiable {
@@ -33,15 +40,17 @@ struct MainWindow: View {
     @State private var inputText: String = ""
     @State private var selectedToken: PIIItem?
 
+    // Navigation
+    @State private var activeTab: AppTab = .redact
+
     // Sidebar
     @State private var sidebarVisible: Bool = true
     @State private var selectedDomainPreset: DomainPreset = .none
     @State private var installedOllamaModels: [String] = []
     @State private var selectedAIModelId: String = "none"
 
-    // Sheets / popovers
+    // Popovers
     @State private var showStatusPopover: Bool = false
-    @State private var showRehydrateSheet: Bool = false
     @State private var showLLMSetupSheet: Bool = false
 
     // Sidebar state
@@ -59,27 +68,17 @@ struct MainWindow: View {
                 topBar
                 Divider()
                 HStack(spacing: 0) {
+                    mainContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     if sidebarVisible {
+                        Divider()
                         sidebarPanel
-                            .frame(width: 220)
-                        Divider()
-                    }
-                    VStack(spacing: 0) {
-                        panelHeaders
-                        Divider()
-                        HStack(spacing: 0) {
-                            inputPanel
-                                .frame(maxWidth: .infinity)
-                            Divider()
-                            outputPanel
-                                .frame(maxWidth: .infinity)
-                        }
-                        .frame(maxHeight: .infinity)
-                        Divider()
-                        bottomBar
+                            .frame(width: 240)
                     }
                 }
                 .frame(maxHeight: .infinity)
+                Divider()
+                bottomBar
             }
 
             // Alternatives dropdown overlay
@@ -106,7 +105,7 @@ struct MainWindow: View {
             }
         }
         .frame(minWidth: 820, minHeight: 540)
-        .background(DesignSystem.Colors.background)
+        .background(Color(NSColor.windowBackgroundColor))
         .sheet(isPresented: $showLLMSetupSheet, onDismiss: {
             Task {
                 installedOllamaModels = (try? await OllamaEngine.listModels()) ?? []
@@ -124,7 +123,6 @@ struct MainWindow: View {
                 onConfirm: applyManualToken
             )
         }
-        .sheet(isPresented: $showRehydrateSheet) { RehydrateSheet() }
         .task {
             installedOllamaModels = (try? await OllamaEngine.listModels()) ?? []
             if let saved = OllamaEngine.activeModel {
@@ -137,60 +135,168 @@ struct MainWindow: View {
 
     private var topBar: some View {
         HStack(spacing: 10) {
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.18)) { sidebarVisible.toggle() }
-            }) {
-                Image(systemName: "sidebar.left")
-                    .font(.system(size: 14))
-                    .foregroundColor(sidebarVisible ? DesignSystem.Colors.primary : DesignSystem.Colors.tertiary)
-            }
-            .buttonStyle(.borderless)
-            .help(sidebarVisible ? "Hide sidebar" : "Show sidebar")
+            Spacer()
 
-            HStack(spacing: 5) {
-                Image(systemName: "eye.slash.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.purple)
-                Text("ZebraRedact")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(DesignSystem.Colors.primary)
-            }
+            // Centered pill tab switcher
+            tabSwitcher
 
             Spacer()
 
-            if detector.isFoundationModelsActive || detector.isOllamaActive {
-                HStack(spacing: 4) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 10, weight: .semibold))
-                    Text("AI")
-                        .font(.system(size: 11, weight: .semibold))
+            // Right side: AI badge + LLM setup + sidebar toggle
+            HStack(spacing: 8) {
+                if detector.isFoundationModelsActive || detector.isOllamaActive {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("AI")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.purple)
+                    .cornerRadius(10)
                 }
-                .foregroundColor(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(Color.purple)
-                .cornerRadius(10)
-            }
 
-            Button(action: { showLLMSetupSheet = true }) {
-                Image(systemName: "cpu")
-                    .font(.system(size: 14))
-                    .foregroundColor(DesignSystem.Colors.secondary)
+                Button(action: { showLLMSetupSheet = true }) {
+                    Image(systemName: "cpu")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("LLM-Aware Setup")
+
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.18)) { sidebarVisible.toggle() }
+                }) {
+                    Image(systemName: "sidebar.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(sidebarVisible ? .primary : .secondary)
+                }
+                .buttonStyle(.borderless)
+                .help(sidebarVisible ? "Hide sidebar" : "Show sidebar")
             }
-            .buttonStyle(.borderless)
-            .help("LLM-Aware Setup")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(DesignSystem.Colors.panel)
     }
 
-    // MARK: - Sidebar
+    private var tabSwitcher: some View {
+        HStack(spacing: 0) {
+            ForEach(AppTab.allCases, id: \.self) { tab in
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.15)) { activeTab = tab }
+                }) {
+                    Text(tab.rawValue)
+                        .font(.system(size: 12, weight: activeTab == tab ? .semibold : .regular))
+                        .foregroundColor(activeTab == tab ? .primary : .secondary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(activeTab == tab
+                                      ? Color(NSColor.controlBackgroundColor)
+                                      : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 9)
+                .fill(Color(NSColor.separatorColor).opacity(0.4))
+        )
+    }
+
+    // MARK: - Main Content
+
+    private var mainContent: some View {
+        Group {
+            switch activeTab {
+            case .redact:
+                redactContent
+            case .rehydrate:
+                rehydrateContent
+            }
+        }
+    }
+
+    private var redactContent: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(NSColor.textBackgroundColor))
+                .shadow(color: .black.opacity(0.09), radius: 8, x: 0, y: 2)
+
+            VStack(spacing: 0) {
+                panelHeaders
+                Divider()
+                HStack(spacing: 0) {
+                    inputPanel
+                        .frame(maxWidth: .infinity)
+                    Divider()
+                    outputPanel
+                        .frame(maxWidth: .infinity)
+                }
+                .frame(maxHeight: .infinity)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .padding(12)
+    }
+
+    private var rehydrateContent: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(NSColor.textBackgroundColor))
+                .shadow(color: .black.opacity(0.09), radius: 8, x: 0, y: 2)
+
+            InlineRehydrateView()
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(12)
+    }
+
+    // MARK: - Sidebar (right, dark)
 
     private var sidebarPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+
+                    // Redacted Items
+                    if !detector.detectedItems.isEmpty {
+                        darkSection(title: "Redacted Items") {
+                            VStack(alignment: .leading, spacing: 1) {
+                                ForEach(detector.detectedItems) { item in
+                                    Button(action: {
+                                        activeTab = .redact
+                                        selectedToken = item
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            Capsule()
+                                                .fill(item.type.highlightColor)
+                                                .frame(width: 4, height: 14)
+                                            Text(item.originalText)
+                                                .font(.system(size: 11, design: .monospaced))
+                                                .lineLimit(1)
+                                                .foregroundColor(Color.white.opacity(0.85))
+                                            Spacer()
+                                            Text(String(item.type.rawValue.prefix(5)))
+                                                .font(.system(size: 9, weight: .semibold))
+                                                .foregroundColor(item.type.highlightColor)
+                                        }
+                                        .padding(.vertical, 5)
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        Rectangle()
+                            .fill(Color.white.opacity(0.08))
+                            .frame(height: 1)
+                    }
 
                     // PII Types (collapsible)
                     VStack(alignment: .leading, spacing: 0) {
@@ -200,16 +306,16 @@ struct MainWindow: View {
                             HStack(spacing: 6) {
                                 Text("PII Types")
                                     .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(DesignSystem.Colors.tertiary)
+                                    .foregroundColor(Color.white.opacity(0.45))
                                     .textCase(.uppercase)
                                     .tracking(0.5)
                                 Spacer()
                                 Text(piiTypeSummaryLabel)
                                     .font(.system(size: 10))
-                                    .foregroundColor(DesignSystem.Colors.tertiary)
+                                    .foregroundColor(Color.white.opacity(0.35))
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 9, weight: .medium))
-                                    .foregroundColor(DesignSystem.Colors.tertiary)
+                                    .foregroundColor(Color.white.opacity(0.35))
                                     .rotationEffect(.degrees(piiTypesExpanded ? 90 : 0))
                             }
                             .contentShape(Rectangle())
@@ -239,7 +345,7 @@ struct MainWindow: View {
                                                     .foregroundColor(type.highlightColor)
                                                     .padding(.horizontal, 5)
                                                     .padding(.vertical, 1)
-                                                    .background(type.highlightColor.opacity(0.15))
+                                                    .background(type.highlightColor.opacity(0.2))
                                                     .cornerRadius(8)
                                             }
                                         }
@@ -252,10 +358,12 @@ struct MainWindow: View {
                         }
                     }
 
-                    Divider()
+                    Rectangle()
+                        .fill(Color.white.opacity(0.08))
+                        .frame(height: 1)
 
                     // Domain preset
-                    SidebarSection(title: "Domain") {
+                    darkSection(title: "Domain") {
                         Picker("", selection: $selectedDomainPreset) {
                             ForEach(DomainPreset.allCases) { preset in
                                 Text(preset.rawValue).tag(preset)
@@ -269,10 +377,12 @@ struct MainWindow: View {
                         }
                     }
 
-                    Divider()
+                    Rectangle()
+                        .fill(Color.white.opacity(0.08))
+                        .frame(height: 1)
 
                     // Redaction Mode
-                    SidebarSection(title: "Mode") {
+                    darkSection(title: "Mode") {
                         Picker("", selection: $detector.redactionMode) {
                             Text("Tokens").tag(RedactionMode.token)
                             Text("Fake Data").tag(RedactionMode.semantic)
@@ -281,19 +391,18 @@ struct MainWindow: View {
                         .pickerStyle(.radioGroup)
                         .onChange(of: detector.redactionMode) { _, mode in
                             if mode == .llmAware, selectedAIModelId != "none" {
-                                // Restore the active model when switching back into AI Classify
                                 OllamaEngine.activeModel = selectedAIModelId
                             }
-                            // Remask with existing items — avoids re-running detection
-                            // and re-using the LLM cache when switching back to AI Classify.
                             if !inputText.isEmpty { detector.remaskCurrentItems(originalText: inputText) }
                         }
                     }
 
-                    Divider()
+                    Rectangle()
+                        .fill(Color.white.opacity(0.08))
+                        .frame(height: 1)
 
                     // AI Model
-                    SidebarSection(title: "AI Model") {
+                    darkSection(title: "AI Model") {
                         Picker("", selection: $selectedAIModelId) {
                             Text("None (Semantic)").tag("none")
                             if !installedOllamaModels.isEmpty {
@@ -310,7 +419,6 @@ struct MainWindow: View {
                             applyAIModelSelection(modelId)
                         }
 
-                        // Backend status — always visible when in AI Classify mode
                         if detector.redactionMode == .llmAware {
                             HStack(spacing: 4) {
                                 Image(systemName: aiBackendStatus.icon)
@@ -334,24 +442,38 @@ struct MainWindow: View {
             }
             Spacer(minLength: 0)
         }
-        .background(DesignSystem.Colors.panel)
+        .background(Color(red: 0.13, green: 0.13, blue: 0.15))
+        .colorScheme(.dark)
+    }
+
+    @ViewBuilder
+    private func darkSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(Color.white.opacity(0.4))
+                .textCase(.uppercase)
+                .tracking(0.5)
+            content()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
     // MARK: - Panel Headers
 
     private var panelHeaders: some View {
         HStack(spacing: 0) {
-            // Clear text header
             HStack(spacing: 6) {
                 Text("Clear text")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(DesignSystem.Colors.secondary)
+                    .foregroundColor(.secondary)
                 Spacer()
                 if !inputText.isEmpty {
                     Button(action: { inputText = ""; detector.detectedItems = [] }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 12))
-                            .foregroundColor(DesignSystem.Colors.tertiary)
+                            .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
                 }
@@ -359,34 +481,22 @@ struct MainWindow: View {
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
 
-            // Re-hydrate button (center)
-            Button(action: { showRehydrateSheet = true }) {
-                Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 13))
-                    .foregroundColor(DesignSystem.Colors.secondary)
-            }
-            .buttonStyle(.borderless)
-            .help("Re-hydrate: paste text with tokens to restore originals")
-            .padding(.horizontal, 12)
-
-            // Redacted text header
             HStack(spacing: 6) {
                 Spacer()
                 Text("Redacted text")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(DesignSystem.Colors.secondary)
+                    .foregroundColor(.secondary)
             }
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
         }
         .padding(.vertical, 7)
-        .background(DesignSystem.Colors.panel)
+        .background(Color(NSColor.textBackgroundColor))
     }
 
     // MARK: - Input Panel
 
     private var inputPanel: some View {
-        // Always render the NSTextView so Cmd+V works even on the empty state
         ZStack(alignment: .center) {
             InputTextView(
                 text: $inputText,
@@ -395,7 +505,6 @@ struct MainWindow: View {
                 onTextChange: { newText in detector.scan(text: newText) }
             )
 
-            // Placeholder overlay — shown when empty, buttons remain interactive
             if inputText.isEmpty {
                 VStack(spacing: 14) {
                     Image(systemName: "text.magnifyingglass")
@@ -403,7 +512,7 @@ struct MainWindow: View {
                         .foregroundColor(DesignSystem.Colors.tertiary)
                     Text("Paste or type to scan")
                         .font(.callout)
-                        .foregroundColor(DesignSystem.Colors.secondary)
+                        .foregroundColor(.secondary)
                     HStack(spacing: 8) {
                         Button(action: pasteFromClipboard) {
                             Label("Paste", systemImage: "doc.on.clipboard")
@@ -449,7 +558,6 @@ struct MainWindow: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Processing spinner overlay
             if detector.isProcessing && !inputText.isEmpty {
                 VStack(spacing: 8) {
                     ProgressView()
@@ -471,7 +579,7 @@ struct MainWindow: View {
                 .foregroundColor(DesignSystem.Colors.success)
             Text("No PII detected")
                 .font(.callout)
-                .foregroundColor(DesignSystem.Colors.secondary)
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -480,7 +588,6 @@ struct MainWindow: View {
 
     private var bottomBar: some View {
         HStack(spacing: 0) {
-            // Left: stats for input panel
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
                     Image(systemName: "character.cursor.ibeam")
@@ -488,7 +595,7 @@ struct MainWindow: View {
                         .foregroundColor(DesignSystem.Colors.tertiary)
                     Text("\(wordCount) words")
                         .font(.system(size: 11))
-                        .foregroundColor(DesignSystem.Colors.secondary)
+                        .foregroundColor(.secondary)
                 }
 
                 if !detector.detectedItems.isEmpty {
@@ -501,7 +608,7 @@ struct MainWindow: View {
                             .foregroundColor(DesignSystem.Colors.warning)
                         Text("\(detector.detectedItems.count) PII detected")
                             .font(.system(size: 11))
-                            .foregroundColor(DesignSystem.Colors.secondary)
+                            .foregroundColor(.secondary)
                     }
                 }
 
@@ -514,7 +621,6 @@ struct MainWindow: View {
 
             Divider().frame(height: 20)
 
-            // Right: status + copy for redacted panel
             HStack(spacing: 8) {
                 if let assessment = detector.confidenceAssessment {
                     Button(action: { showStatusPopover.toggle() }) {
@@ -543,7 +649,6 @@ struct MainWindow: View {
                 }
 
                 if !detector.ghostedText.isEmpty {
-                    // Split button: left = direct copy, right chevron = dropdown
                     HStack(spacing: 0) {
                         Button(action: { copyToClipboard(detector.ghostedText) }) {
                             HStack(spacing: 4) {
@@ -557,7 +662,7 @@ struct MainWindow: View {
                         .buttonStyle(.plain)
 
                         Rectangle()
-                            .fill(DesignSystem.Colors.tertiary.opacity(0.3))
+                            .fill(Color.secondary.opacity(0.3))
                             .frame(width: 1, height: 16)
 
                         Menu {
@@ -575,7 +680,7 @@ struct MainWindow: View {
                     }
                     .background(
                         RoundedRectangle(cornerRadius: 5)
-                            .stroke(DesignSystem.Colors.tertiary.opacity(0.4), lineWidth: 1)
+                            .stroke(Color.secondary.opacity(0.4), lineWidth: 1)
                     )
                 }
             }
@@ -583,7 +688,7 @@ struct MainWindow: View {
             .padding(.horizontal, 14)
         }
         .padding(.vertical, 7)
-        .background(DesignSystem.Colors.panel)
+        .background(Color(NSColor.windowBackgroundColor))
     }
 
     // MARK: - Computed
@@ -660,8 +765,6 @@ struct MainWindow: View {
         if !inputText.isEmpty { detector.scan(text: inputText) }
     }
 
-    /// Status of the active AI backend for the AI Classify mode.
-    /// Returns (label, color, SF symbol).
     private var aiBackendStatus: (label: String, color: Color, icon: String) {
         if detector.isFoundationModelsActive {
             return ("Apple Intelligence", .green, "apple.intelligence")
@@ -676,7 +779,6 @@ struct MainWindow: View {
     private func applyAIModelSelection(_ modelId: String) {
         if modelId == "none" {
             OllamaEngine.activeModel = nil
-            // Only revert to semantic if currently in LLM-Aware mode
             if detector.redactionMode == .llmAware {
                 detector.redactionMode = .semantic
             }
@@ -699,26 +801,6 @@ struct MainWindow: View {
         } catch {
             manualTokenError = error.localizedDescription
         }
-    }
-}
-
-// MARK: - Sidebar Section
-
-private struct SidebarSection<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(DesignSystem.Colors.tertiary)
-                .textCase(.uppercase)
-                .tracking(0.5)
-            content()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
     }
 }
 
@@ -797,103 +879,81 @@ private struct MetricRow: View {
     }
 }
 
-// MARK: - Re-hydrate Sheet
+// MARK: - Inline Re-hydrate View
 
-struct RehydrateSheet: View {
+struct InlineRehydrateView: View {
     @State private var pastedText: String = ""
     @State private var tokenCount: Int = 0
-    @Environment(\.dismiss) private var dismiss
 
     private var rehydrated: String {
         GhostMappingStore.shared.rehydrate(pastedText)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Re-hydrate Text")
-                        .font(.headline)
-                    Text("Paste a response containing privacy tokens to restore original values")
-                        .font(.caption)
+        HStack(spacing: 0) {
+            // Left: input with tokens
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("Text with tokens")
+                        .font(.caption.weight(.semibold))
                         .foregroundColor(.secondary)
+                    Spacer()
+                    if tokenCount > 0 {
+                        Text("\(tokenCount) token\(tokenCount == 1 ? "" : "s") found")
+                            .font(.caption2)
+                            .foregroundColor(.purple)
+                    }
                 }
-                Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.defaultAction)
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 8)
+
+                TextEditor(text: $pastedText)
+                    .font(.system(.body, design: .monospaced))
+                    .padding(.horizontal, 10)
+                    .onChange(of: pastedText) { _, text in
+                        tokenCount = GhostMappingStore.shared.rehydrationCount(in: text)
+                    }
             }
-            .padding(20)
 
             Divider()
 
-            HStack(spacing: 0) {
-                // Left: input with tokens
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Text("Text with tokens")
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        if tokenCount > 0 {
-                            Text("\(tokenCount) token\(tokenCount == 1 ? "" : "s") found")
-                                .font(.caption2)
-                                .foregroundColor(.purple)
+            // Right: rehydrated output
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("Restored text")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    if !rehydrated.isEmpty && rehydrated != pastedText {
+                        Button(action: {
+                            let pb = NSPasteboard.general
+                            pb.clearContents()
+                            pb.setString(rehydrated, forType: .string)
+                        }) {
+                            Label("Copy", systemImage: "doc.on.doc")
+                                .font(.caption)
                         }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 14)
-                    .padding(.bottom, 8)
-
-                    TextEditor(text: $pastedText)
-                        .font(.system(.body, design: .monospaced))
-                        .padding(.horizontal, 10)
-                        .onChange(of: pastedText) { _, text in
-                            tokenCount = GhostMappingStore.shared.rehydrationCount(in: text)
-                        }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 8)
 
-                Divider()
-
-                // Right: rehydrated output
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Text("Restored text")
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        if !rehydrated.isEmpty && rehydrated != pastedText {
-                            Button(action: {
-                                let pb = NSPasteboard.general
-                                pb.clearContents()
-                                pb.setString(rehydrated, forType: .string)
-                            }) {
-                                Label("Copy", systemImage: "doc.on.doc")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.mini)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 14)
-                    .padding(.bottom, 8)
-
-                    ScrollView {
-                        Text(pastedText.isEmpty
-                             ? "Paste text with tokens on the left…"
-                             : rehydrated)
-                            .font(pastedText.isEmpty ? .callout : .body)
-                            .foregroundColor(pastedText.isEmpty ? .secondary : .primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(10)
-                            .textSelection(.enabled)
-                    }
+                ScrollView {
+                    Text(pastedText.isEmpty
+                         ? "Paste text with tokens on the left…"
+                         : rehydrated)
+                        .font(pastedText.isEmpty ? .callout : .body)
+                        .foregroundColor(pastedText.isEmpty ? .secondary : .primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .textSelection(.enabled)
                 }
             }
-            .frame(maxHeight: .infinity)
         }
-        .frame(width: 720, height: 480)
     }
 }
 
@@ -983,7 +1043,7 @@ struct AlternativesDropdown: View {
                             .fontWeight(.semibold)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(item.type.highlightColor.opacity(0.3))
+                            .background(item.type.highlightColor.opacity(0.7))
                             .cornerRadius(4)
                     }
                     HStack(spacing: 6) {
@@ -1022,7 +1082,6 @@ struct AlternativesDropdown: View {
                         )
                     }
 
-                    // Restore original option
                     Button(action: restoreOriginal) {
                         HStack(spacing: 12) {
                             Image(systemName: "arrow.uturn.backward.circle")
@@ -1130,7 +1189,7 @@ struct InputTextView: NSViewRepresentable {
         textView.isSelectable = true
         textView.font = NSFont.systemFont(ofSize: 15)
         textView.textColor = NSColor.labelColor
-        textView.backgroundColor = NSColor.controlBackgroundColor
+        textView.backgroundColor = NSColor.textBackgroundColor
         textView.textContainerInset = CGSize(width: 16, height: 16)
         textView.delegate = context.coordinator
         return scrollView
@@ -1149,7 +1208,7 @@ struct InputTextView: NSViewRepresentable {
                 let nsRange = NSRange(range, in: text)
                 if nsRange.location != NSNotFound, nsRange.location + nsRange.length <= storage.length {
                     storage.addAttribute(.backgroundColor,
-                                         value: NSColor(highlightColor).withAlphaComponent(0.5),
+                                         value: NSColor(highlightColor).withAlphaComponent(0.6),
                                          range: nsRange)
                     textView.scrollRangeToVisible(nsRange)
                 }

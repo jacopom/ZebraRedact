@@ -100,9 +100,9 @@ struct ClickableTokenTextView: NSViewRepresentable {
                 guard foundRange.location != NSNotFound else { break }
 
                 if !usedRanges.contains(foundRange.location) {
-                    // Intelligence annotation style: translucent tint + crisp colored underline
+                    // Soft pastel background with matching underline accent
                     let accentColor = NSColor(item.type.highlightColor)
-                    let bgColor = accentColor.withAlphaComponent(0.14)
+                    let bgColor = accentColor.withAlphaComponent(0.72)
                     result.addAttributes([
                         .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .semibold),
                         .foregroundColor: NSColor.labelColor,

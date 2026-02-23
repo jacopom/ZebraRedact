@@ -53,19 +53,18 @@ enum PIIType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    /// Intelligence-ops annotation palette — vivid enough for underline accents,
-    /// muted enough for translucent backgrounds. Works on both dark and light.
+    /// Soft pastel palette — legible highlights without visual noise.
     var highlightColor: Color {
         switch self {
-        case .email:      return Color(red: 0.26, green: 0.56, blue: 1.0)   // Signal blue
-        case .phone:      return Color(red: 0.35, green: 0.76, blue: 0.96)  // Comms sky
-        case .creditCard: return Color(red: 0.98, green: 0.28, blue: 0.38)  // Alert crimson
-        case .ssn:        return Color(red: 0.93, green: 0.73, blue: 0.12)  // Classified amber
-        case .ipAddress:  return Color(red: 0.68, green: 0.42, blue: 0.98)  // Network purple
-        case .apiKey:     return Color(red: 0.98, green: 0.84, blue: 0.04)  // Credential yellow
-        case .name:       return Color(red: 0.06, green: 0.76, blue: 0.62)  // Operative teal
-        case .address:    return Color(red: 0.32, green: 0.84, blue: 0.50)  // Location green
-        case .custom:     return Color(red: 0.62, green: 0.64, blue: 0.72)  // Neutral slate
+        case .email:      return Color(red: 0.60, green: 0.78, blue: 0.98)  // Cornflower blue
+        case .phone:      return Color(red: 0.65, green: 0.88, blue: 0.98)  // Sky blue
+        case .creditCard: return Color(red: 0.98, green: 0.67, blue: 0.72)  // Rose
+        case .ssn:        return Color(red: 0.99, green: 0.87, blue: 0.55)  // Amber
+        case .ipAddress:  return Color(red: 0.80, green: 0.72, blue: 0.99)  // Lavender
+        case .apiKey:     return Color(red: 0.99, green: 0.95, blue: 0.58)  // Lemon
+        case .name:       return Color(red: 0.58, green: 0.95, blue: 0.84)  // Mint
+        case .address:    return Color(red: 0.64, green: 0.93, blue: 0.70)  // Sage
+        case .custom:     return Color(red: 0.82, green: 0.82, blue: 0.86)  // Stone
         }
     }
 }

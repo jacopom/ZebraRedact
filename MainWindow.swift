@@ -1116,11 +1116,7 @@ struct AlternativesDropdown: View {
     }
 
     private func selectAlternative(_ alternative: RedactionAlternative) {
-        if let index = detector.detectedItems.firstIndex(where: { $0.id == item.id }) {
-            detector.detectedItems[index].selectedAlternativeId = alternative.id
-            detector.remask(originalText: inputText)
-            detector.objectWillChange.send()
-        }
+        detector.applySelectedAlternative(alternative, forItemId: item.id, originalText: inputText)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { selectedToken = nil }
     }
 

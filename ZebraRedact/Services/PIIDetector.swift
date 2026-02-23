@@ -316,13 +316,31 @@ final class PIIDetector: ObservableObject {
 
     // MARK: - Re-mask After Toggling
 
+    /// Rebuild ghostedText from originalText, preserving existing replacements from
+    /// appliedReplacements (semantic fakes, LLM output, etc.) and falling back to
+    /// item.ghostToken for any item that has no existing entry.
+    /// Always updates appliedReplacements so ClickableTokenTextView stays in sync.
     func remask(originalText: String) {
         var result = originalText
+        var newApplied: [UUID: String] = [:]
         for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-            result.replaceSubrange(item.range, with: item.ghostToken)
+            let replacement = appliedReplacements[item.id] ?? item.ghostToken
+            result.replaceSubrange(item.range, with: replacement)
+            newApplied[item.id] = replacement
         }
         ghostedText = result
+        appliedReplacements = newApplied
         privacyScore = calculateScore(items: detectedItems)
+    }
+
+    /// Change one item's replacement to a specific alternative, then rebuild.
+    func applySelectedAlternative(_ alternative: RedactionAlternative,
+                                  forItemId itemId: UUID,
+                                  originalText: String) {
+        guard let index = detectedItems.firstIndex(where: { $0.id == itemId }) else { return }
+        detectedItems[index].selectedAlternativeId = alternative.id
+        appliedReplacements[itemId] = alternative.text   // must happen BEFORE remask
+        remask(originalText: originalText)
     }
 
     // MARK: - Manual Tagging
@@ -352,6 +370,19 @@ final class PIIDetector: ObservableObject {
             isMasked: true,
             isManual: true
         )
+
+        // Compute the replacement for this new item based on the current mode,
+        // and seed it into appliedReplacements BEFORE calling remask so that
+        // remask (which reads appliedReplacements) sees it immediately.
+        let newReplacement: String
+        switch redactionMode {
+        case .token:
+            newReplacement = manualItem.ghostToken
+        case .semantic, .llmAware:
+            newReplacement = manualItem.alternatives.first(where: { $0.strategy == .semantic })?.text
+                ?? manualItem.ghostToken
+        }
+        appliedReplacements[manualItem.id] = newReplacement
 
         detectedItems.append(manualItem)
         detectedItems.sort { $0.range.lowerBound < $1.range.lowerBound }

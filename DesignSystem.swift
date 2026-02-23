@@ -22,25 +22,29 @@ enum DesignSystem {
 
     // MARK: - Colors
 
-    /// Muted, professional color palette
+    /// Intelligence-aesthetic color palette — precise, high-contrast, monochromatic base
+    /// with amber accent. Adapts to system dark/light mode.
     enum Colors {
-        // Semantic colors
+        // Semantic text colors (adaptive)
         static let primary = Color.primary
         static let secondary = Color.secondary
         static let tertiary = Color(nsColor: .tertiaryLabelColor)
 
-        // Background colors
+        // Background colors (adaptive)
         static let background = Color(nsColor: .windowBackgroundColor)
         static let panel = Color(nsColor: .controlBackgroundColor)
         static let surface = Color(nsColor: .textBackgroundColor)
 
-        // Status colors (muted)
-        static let success = Color(red: 0.3, green: 0.7, blue: 0.4)
-        static let warning = Color(red: 0.95, green: 0.7, blue: 0.3)
-        static let error = Color(red: 0.9, green: 0.4, blue: 0.4)
-        static let info = Color(red: 0.4, green: 0.6, blue: 0.9)
+        // Status colors — precise, intelligence-palette
+        static let success = Color(red: 0.22, green: 0.72, blue: 0.45)   // Field green
+        static let warning = Color(red: 0.93, green: 0.73, blue: 0.12)   // Classified amber
+        static let error   = Color(red: 0.98, green: 0.28, blue: 0.38)   // Alert crimson
+        static let info    = Color(red: 0.26, green: 0.56, blue: 1.0)    // Signal blue
 
-        // Zebra brand colors (black & white stripes)
+        /// Single accent color: intelligence amber — redaction marker, classified stamp
+        static let accent  = Color(red: 0.91, green: 0.76, blue: 0.24)
+
+        // Legacy brand colors kept for compatibility
         static let zebraBlack = Color(red: 0.1, green: 0.1, blue: 0.1)
         static let zebraWhite = Color(red: 0.95, green: 0.95, blue: 0.95)
     }

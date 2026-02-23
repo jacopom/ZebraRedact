@@ -38,6 +38,10 @@ final class PIIDetector: ObservableObject {
     /// Type-erased FoundationModelEngine (macOS 26+)
     private var foundationEngine: AnyObject?
 
+    /// Cache of LLM-Aware results keyed by input text — avoids re-running the LLM
+    /// when the user switches away from LLM-Aware mode and then back.
+    private var llmResultCache: (inputText: String, items: [PIIItem], ghosted: String, applied: [UUID: String])? = nil
+
     init(modelManager: ModelManager? = nil) {
         self.modelManager = modelManager
         // Always initialize mlxEngine — SemanticAnalyzer (NaturalLanguage-based) works
@@ -106,6 +110,9 @@ final class PIIDetector: ObservableObject {
 
     func scan(text: String) {
         isProcessing = true
+
+        // Invalidate LLM cache whenever the source text changes
+        if llmResultCache?.inputText != text { llmResultCache = nil }
 
         let allItems = detector.detect(in: text)
         let filtered = allItems.filter { enabledCategories.contains($0.type) }
@@ -244,6 +251,10 @@ final class PIIDetector: ObservableObject {
         }
 
         await MainActor.run {
+            // Cache LLM-Aware results so re-entering the mode doesn't re-run the LLM.
+            if redactionMode == .llmAware {
+                llmResultCache = (inputText: text, items: items, ghosted: result, applied: applied)
+            }
             // Update detectedItems and ghostedText together so ClickableTokenTextView
             // always sees a consistent state — no window where items exist in a stale text.
             detectedItems = items
@@ -251,6 +262,32 @@ final class PIIDetector: ObservableObject {
             appliedReplacements = applied
             privacyScore = calculateScore(items: items)
             GhostMappingStore.shared.storeBatch(items: items)
+        }
+    }
+
+    // MARK: - Remask on Mode Switch
+
+    /// Re-render the output for the current `redactionMode` without re-running detection.
+    /// For LLM-Aware mode, uses the cached result if the input text is unchanged.
+    func remaskCurrentItems(originalText: String) {
+        guard !originalText.isEmpty else { return }
+
+        // LLM-Aware: use the cache — avoid paying the LLM cost again
+        if redactionMode == .llmAware,
+           let cache = llmResultCache,
+           cache.inputText == originalText {
+            detectedItems = cache.items
+            ghostedText = cache.ghosted
+            appliedReplacements = cache.applied
+            privacyScore = calculateScore(items: cache.items)
+            return
+        }
+
+        // All other modes: just re-apply masking to existing items (no re-detection)
+        isProcessing = true
+        Task {
+            await applyMasking(to: originalText, newItems: detectedItems)
+            await MainActor.run { isProcessing = false }
         }
     }
 

@@ -50,6 +50,8 @@
 		EB00000026 /* SufficiencyScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000016 /* SufficiencyScorer.swift */; };
 		EB00000027 /* SemanticRedactorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000017 /* SemanticRedactorImpl.swift */; };
 		EB00000028 /* SemanticRedactorBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000018 /* SemanticRedactorBridge.swift */; };
+		A200000001 /* ZebraRedactFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000001 /* ZebraRedactFeatureTests.swift */; };
+		A200000002 /* SemanticRedactorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000002 /* SemanticRedactorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -99,10 +101,38 @@
 		EB00000016 /* SufficiencyScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SufficiencyScorer.swift; sourceTree = "<group>"; };
 		EB00000017 /* SemanticRedactorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorImpl.swift; sourceTree = "<group>"; };
 		EB00000018 /* SemanticRedactorBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorBridge.swift; sourceTree = "<group>"; };
+		B200000001 /* ZebraRedactFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZebraRedactFeatureTests.swift; sourceTree = "<group>"; };
+		B200000002 /* SemanticRedactorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorTests.swift; sourceTree = "<group>"; };
+		C200000001 /* ZebraRedactTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZebraRedactTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXContainerItemProxy section */
+		F200000011 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F100000010 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F100000001;
+			remoteInfo = ZebraRedact;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		F200000010 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F100000001 /* ZebraRedact */;
+			targetProxy = F200000011 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		D100000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F200000003 /* Frameworks (Tests) */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -115,6 +145,7 @@
 		E100000001 = {
 			isa = PBXGroup;
 			children = (
+				E200000001 /* ZebraRedactTests */,
 				EA2E79402F45E7770044850B /* MLXContextEngine.swift */,
 				EA2E79412F45E7770044850B /* SemanticAnalyzer.swift */,
 				EA2E793E2F45E75A0044850B /* RedactionMode.swift */,
@@ -257,8 +288,18 @@
 			isa = PBXGroup;
 			children = (
 				C100000001 /* ZebraRedact.app */,
+				C200000001 /* ZebraRedactTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E200000001 /* ZebraRedactTests */ = {
+			isa = PBXGroup;
+			children = (
+				B200000001 /* ZebraRedactFeatureTests.swift */,
+				B200000002 /* SemanticRedactorTests.swift */,
+			);
+			path = ZebraRedactTests;
 			sourceTree = "<group>";
 		};
 		EA2E793D2F45E7000044850B /* Recovered References */ = {
@@ -288,6 +329,23 @@
 			productReference = C100000001 /* ZebraRedact.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F200000001 /* ZebraRedactTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G200000001 /* Build configuration list for PBXNativeTarget "ZebraRedactTests" */;
+			buildPhases = (
+				F200000002 /* Sources */,
+				F200000003 /* Frameworks (Tests) */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F200000010 /* PBXTargetDependency */,
+			);
+			name = ZebraRedactTests;
+			productName = ZebraRedactTests;
+			productReference = C200000001 /* ZebraRedactTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -300,6 +358,10 @@
 				TargetAttributes = {
 					F100000001 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					F200000001 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = F100000001;
 					};
 				};
 			};
@@ -317,6 +379,7 @@
 			projectRoot = "";
 			targets = (
 				F100000001 /* ZebraRedact */,
+				F200000001 /* ZebraRedactTests */,
 			);
 		};
 /* End PBXProject section */
@@ -379,6 +442,15 @@
 				EB00000026 /* SufficiencyScorer.swift in Sources */,
 				EB00000027 /* SemanticRedactorImpl.swift in Sources */,
 				EB00000028 /* SemanticRedactorBridge.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F200000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A200000001 /* ZebraRedactFeatureTests.swift in Sources */,
+				A200000002 /* SemanticRedactorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -559,6 +631,34 @@
 			};
 			name = Release;
 		};
+		H200000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ghostclip.app.tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ZebraRedact.app/Contents/MacOS/ZebraRedact";
+			};
+			name = Debug;
+		};
+		H200000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ghostclip.app.tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ZebraRedact.app/Contents/MacOS/ZebraRedact";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -576,6 +676,15 @@
 			buildConfigurations = (
 				H100000003 /* Debug */,
 				H100000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G200000001 /* Build configuration list for PBXNativeTarget "ZebraRedactTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				H200000001 /* Debug */,
+				H200000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

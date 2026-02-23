@@ -100,12 +100,16 @@ struct ClickableTokenTextView: NSViewRepresentable {
                 guard foundRange.location != NSNotFound else { break }
 
                 if !usedRanges.contains(foundRange.location) {
+                    // Intelligence annotation style: translucent tint + crisp colored underline
+                    let accentColor = NSColor(item.type.highlightColor)
+                    let bgColor = accentColor.withAlphaComponent(0.14)
                     result.addAttributes([
-                        .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .medium),
+                        .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .semibold),
                         .foregroundColor: NSColor.labelColor,
-                        .backgroundColor: NSColor(item.type.highlightColor),
+                        .backgroundColor: bgColor,
                         .link: item.id.uuidString,
-                        .underlineStyle: 0
+                        .underlineStyle: NSUnderlineStyle.single.rawValue,
+                        .underlineColor: accentColor
                     ], range: foundRange)
 
                     usedRanges.insert(foundRange.location)

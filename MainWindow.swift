@@ -44,6 +44,9 @@ struct MainWindow: View {
     @State private var showRehydrateSheet: Bool = false
     @State private var showLLMSetupSheet: Bool = false
 
+    // Sidebar state
+    @State private var piiTypesExpanded: Bool = false
+
     // Manual tokenization
     @State private var pendingManualTokenText: String? = nil
     @State private var showManualTokenSheet: Bool = false
@@ -189,28 +192,63 @@ struct MainWindow: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
 
-                    // PII Types
-                    SidebarSection(title: "PII Types") {
-                        VStack(alignment: .leading, spacing: 3) {
-                            ForEach(PIIType.allCases, id: \.self) { type in
-                                Toggle(isOn: Binding(
-                                    get: { detector.enabledCategories.contains(type) },
-                                    set: { _ in
-                                        detector.toggleCategory(type)
-                                        if !inputText.isEmpty { detector.scan(text: inputText) }
-                                    }
-                                )) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: type.icon)
-                                            .font(.system(size: 11))
-                                            .foregroundColor(Color(type.highlightColor))
-                                            .frame(width: 16)
-                                        Text(type.rawValue)
-                                            .font(.system(size: 12))
-                                    }
-                                }
-                                .toggleStyle(.checkbox)
+                    // PII Types (collapsible)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.15)) { piiTypesExpanded.toggle() }
+                        }) {
+                            HStack(spacing: 6) {
+                                Text("PII Types")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(DesignSystem.Colors.tertiary)
+                                    .textCase(.uppercase)
+                                    .tracking(0.5)
+                                Spacer()
+                                Text(piiTypeSummaryLabel)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(DesignSystem.Colors.tertiary)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundColor(DesignSystem.Colors.tertiary)
+                                    .rotationEffect(.degrees(piiTypesExpanded ? 90 : 0))
                             }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+
+                        if piiTypesExpanded {
+                            VStack(alignment: .leading, spacing: 3) {
+                                ForEach(PIIType.allCases, id: \.self) { type in
+                                    let count = detector.detectedItems.filter { $0.type == type }.count
+                                    Toggle(isOn: Binding(
+                                        get: { detector.enabledCategories.contains(type) },
+                                        set: { _ in
+                                            detector.toggleCategory(type)
+                                            if !inputText.isEmpty { detector.scan(text: inputText) }
+                                        }
+                                    )) {
+                                        HStack(spacing: 0) {
+                                            Text(type.rawValue)
+                                                .font(.system(size: 12))
+                                            Spacer()
+                                            if count > 0 {
+                                                Text("\(count)")
+                                                    .font(.system(size: 10, weight: .semibold))
+                                                    .foregroundColor(type.highlightColor)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 1)
+                                                    .background(type.highlightColor.opacity(0.15))
+                                                    .cornerRadius(8)
+                                            }
+                                        }
+                                    }
+                                    .toggleStyle(.checkbox)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 10)
                         }
                     }
 
@@ -246,7 +284,9 @@ struct MainWindow: View {
                                 // Restore the active model when switching back into AI Classify
                                 OllamaEngine.activeModel = selectedAIModelId
                             }
-                            if !inputText.isEmpty { detector.scan(text: inputText) }
+                            // Remask with existing items — avoids re-running detection
+                            // and re-using the LLM cache when switching back to AI Classify.
+                            if !inputText.isEmpty { detector.remaskCurrentItems(originalText: inputText) }
                         }
                     }
 
@@ -550,6 +590,12 @@ struct MainWindow: View {
 
     private var wordCount: Int {
         inputText.split(separator: " ").count
+    }
+
+    private var piiTypeSummaryLabel: String {
+        let enabled = detector.enabledCategories.count
+        let total = PIIType.allCases.count
+        return enabled == total ? "All \(total)" : "\(enabled) of \(total)"
     }
 
     // MARK: - Color Helper
@@ -1005,7 +1051,9 @@ struct AlternativesDropdown: View {
             }
             .frame(maxHeight: 450)
         }
-        .onHover { _ in NSCursor.arrow.set() }
+        .onHover { hovering in
+            if hovering { NSCursor.arrow.push() } else { NSCursor.pop() }
+        }
     }
 
     private func selectAlternative(_ alternative: RedactionAlternative) {
@@ -1060,7 +1108,10 @@ struct AlternativeRow: View {
             )
         }
         .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
+        .onHover { hovering in
+            isHovered = hovering
+            if hovering { NSCursor.arrow.push() } else { NSCursor.pop() }
+        }
     }
 }
 

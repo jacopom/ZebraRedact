@@ -53,18 +53,19 @@ enum PIIType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    /// Distinct highlight colors for each PII type
+    /// Intelligence-ops annotation palette — vivid enough for underline accents,
+    /// muted enough for translucent backgrounds. Works on both dark and light.
     var highlightColor: Color {
         switch self {
-        case .email: return Color(red: 1.0, green: 0.75, blue: 0.5)     // Orange
-        case .phone: return Color(red: 0.5, green: 0.75, blue: 1.0)     // Blue
-        case .creditCard: return Color(red: 1.0, green: 0.5, blue: 0.5) // Red
-        case .ssn: return Color(red: 1.0, green: 0.5, blue: 0.85)       // Pink
-        case .ipAddress: return Color(red: 0.7, green: 0.6, blue: 1.0)  // Purple
-        case .apiKey: return Color(red: 1.0, green: 0.9, blue: 0.5)     // Yellow
-        case .name: return Color(red: 0.5, green: 0.95, blue: 0.7)      // Green
-        case .address: return Color(red: 0.75, green: 0.85, blue: 0.6)  // Lime
-        case .custom: return Color(red: 0.7, green: 0.8, blue: 0.9)     // Light blue
+        case .email:      return Color(red: 0.26, green: 0.56, blue: 1.0)   // Signal blue
+        case .phone:      return Color(red: 0.35, green: 0.76, blue: 0.96)  // Comms sky
+        case .creditCard: return Color(red: 0.98, green: 0.28, blue: 0.38)  // Alert crimson
+        case .ssn:        return Color(red: 0.93, green: 0.73, blue: 0.12)  // Classified amber
+        case .ipAddress:  return Color(red: 0.68, green: 0.42, blue: 0.98)  // Network purple
+        case .apiKey:     return Color(red: 0.98, green: 0.84, blue: 0.04)  // Credential yellow
+        case .name:       return Color(red: 0.06, green: 0.76, blue: 0.62)  // Operative teal
+        case .address:    return Color(red: 0.32, green: 0.84, blue: 0.50)  // Location green
+        case .custom:     return Color(red: 0.62, green: 0.64, blue: 0.72)  // Neutral slate
         }
     }
 }
@@ -111,24 +112,66 @@ struct PIIItem: Identifiable, Equatable {
         self.isManual = isManual
     }
 
+    // MARK: - Fake data pools (varied, international)
+
+    private enum FakeData {
+        static let names = [
+            "Emma Wilson", "James Chen", "Fatima Al-Hassan", "Lucas Moreau",
+            "Sofia Andersen", "Kwame Asante", "Priya Sharma", "Tobias Müller",
+            "Yuki Tanaka", "Amara Okafor", "Diego Fernández", "Astrid Lindqvist",
+            "Mohammed Al-Rashid", "Valentina Rossi", "Arjun Nair", "Chloe Dubois"
+        ]
+        static let emails = [
+            "a.wilson@techcorp.io", "j.chen@startup.co", "f.hassan@globalnet.org",
+            "l.moreau@example.fr", "sofia.a@university.edu", "k.asante@company.com",
+            "p.sharma@consulting.in", "t.mueller@firma.de", "y.tanaka@corp.jp",
+            "amara.o@nonprofit.org", "d.fernandez@empresa.es", "a.lindqvist@ab.se"
+        ]
+        static let phones = [
+            "(415) 555-0192", "+44 20 7946 0958", "+49 30 1234 5678",
+            "(212) 555-0134", "+33 1 23 45 67 89", "+81 3-1234-5678",
+            "(312) 555-0167", "+61 2 9876 5432", "+34 91 123 4567",
+            "(617) 555-0183", "+1 604 555-0147", "+55 11 9876-5432"
+        ]
+        static let addresses = [
+            "742 Evergreen Terrace, Springfield", "15 Rue de la Paix, Paris",
+            "Unter den Linden 77, Berlin", "350 Fifth Avenue, New York",
+            "1 Harbour Rd, Hong Kong", "Via Veneto 183, Rome",
+            "Avenida Paulista 900, São Paulo", "10 Downing Street, London",
+            "Shibuya Crossing 1-2-3, Tokyo", "Calle Gran Vía 28, Madrid"
+        ]
+        static let ipAddresses = [
+            "10.0.0.1", "172.16.0.1", "192.168.0.100", "10.10.1.50",
+            "172.31.255.1", "192.168.100.14", "10.0.1.200", "172.20.10.1"
+        ]
+
+        static func pick<T>(_ pool: [T], seed: String) -> T {
+            // Deterministic-ish pick so the same input always gets the same fake value
+            let hash = abs(seed.unicodeScalars.reduce(0) { $0 &+ Int($1.value) })
+            return pool[hash % pool.count]
+        }
+    }
+
     /// Generate default alternatives for this PII type
     static func generateAlternatives(for type: PIIType, original: String) -> [RedactionAlternative] {
         let tokenId = UUID().uuidString.prefix(4).uppercased()
 
         switch type {
         case .email:
+            let fakeEmail = FakeData.pick(FakeData.emails, seed: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[EMAIL_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: "user@example.com", description: "Realistic fake email"),
+                RedactionAlternative(strategy: .semantic, text: fakeEmail, description: "Realistic fake email"),
                 RedactionAlternative(strategy: .partial, text: "\(original.prefix(1))***@***", description: "Show first character only"),
                 RedactionAlternative(strategy: .contextual, text: "[email address]", description: "Descriptive placeholder"),
                 RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
             ]
 
         case .phone:
+            let fakePhone = FakeData.pick(FakeData.phones, seed: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[PHONE_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: "(555) 123-4567", description: "Realistic fake number"),
+                RedactionAlternative(strategy: .semantic, text: fakePhone, description: "Realistic fake number"),
                 RedactionAlternative(strategy: .partial, text: "***-***-\(original.suffix(4))", description: "Show last 4 digits"),
                 RedactionAlternative(strategy: .contextual, text: "[phone number]", description: "Descriptive placeholder"),
                 RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
@@ -151,9 +194,10 @@ struct PIIItem: Identifiable, Equatable {
             ]
 
         case .ipAddress:
+            let fakeIP = FakeData.pick(FakeData.ipAddresses, seed: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[IP_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: "192.168.1.1", description: "Private IP address"),
+                RedactionAlternative(strategy: .semantic, text: fakeIP, description: "Fake private IP address"),
                 RedactionAlternative(strategy: .contextual, text: "[IP address]", description: "Descriptive placeholder"),
                 RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
             ]
@@ -167,18 +211,20 @@ struct PIIItem: Identifiable, Equatable {
             ]
 
         case .name:
+            let fakeName = FakeData.pick(FakeData.names, seed: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[NAME_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: "John Doe", description: "Generic placeholder name"),
+                RedactionAlternative(strategy: .semantic, text: fakeName, description: "Varied fake name"),
                 RedactionAlternative(strategy: .partial, text: "\(original.prefix(1))***", description: "Show first letter only"),
                 RedactionAlternative(strategy: .contextual, text: "[person]", description: "Descriptive placeholder"),
                 RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
             ]
 
         case .address:
+            let fakeAddr = FakeData.pick(FakeData.addresses, seed: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[ADDR_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: "123 Main St", description: "Generic placeholder address"),
+                RedactionAlternative(strategy: .semantic, text: fakeAddr, description: "Varied fake address"),
                 RedactionAlternative(strategy: .contextual, text: "[address]", description: "Descriptive placeholder"),
                 RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
             ]

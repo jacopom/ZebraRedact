@@ -100,12 +100,14 @@ struct ClickableTokenTextView: NSViewRepresentable {
                 guard foundRange.location != NSNotFound else { break }
 
                 if !usedRanges.contains(foundRange.location) {
-                    // Soft pastel background with matching underline accent
+                    // Pastel background — use dark foreground so it's legible in both
+                    // light and dark mode (the pastel chips are always light-toned).
                     let accentColor = NSColor(item.type.highlightColor)
-                    let bgColor = accentColor.withAlphaComponent(0.72)
+                    let bgColor = accentColor.withAlphaComponent(0.90)
+                    let textColor = NSColor(white: 0.08, alpha: 1.0)
                     result.addAttributes([
                         .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .semibold),
-                        .foregroundColor: NSColor.labelColor,
+                        .foregroundColor: textColor,
                         .backgroundColor: bgColor,
                         .link: item.id.uuidString,
                         .underlineStyle: NSUnderlineStyle.single.rawValue,

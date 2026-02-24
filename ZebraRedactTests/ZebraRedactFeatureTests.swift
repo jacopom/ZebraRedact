@@ -324,6 +324,95 @@ final class PIIDetectorTests: XCTestCase {
                 "Applied replacement '\(replacement)' must appear in ghostedText")
         }
     }
+
+    // MARK: - Manual tag preservation across re-scans
+
+    func testManualTagSurvivesReScanWhenTextUnchanged() async throws {
+        let text = "Please call Project Phoenix about the budget."
+        let detector = PIIDetector()
+        detector.redactionMode = .token
+        detector.scan(text: text)
+        await waitForProcessing(detector)
+
+        // Manually tag "Project Phoenix"
+        guard let tagRange = text.range(of: "Project Phoenix") else {
+            XCTFail("Precondition: 'Project Phoenix' must be in text"); return
+        }
+        try detector.addManualTag(range: tagRange, type: .custom, in: text)
+
+        let manualItem = detector.detectedItems.first { $0.isManual }
+        let manualId = try XCTUnwrap(manualItem?.id, "Manual item should exist")
+
+        // Re-scan the identical text (simulates user typing a character elsewhere)
+        detector.scan(text: text)
+        await waitForProcessing(detector)
+
+        XCTAssertTrue(detector.detectedItems.contains { $0.isManual },
+            "Manual tag must survive a re-scan of the same text")
+        XCTAssertTrue(detector.detectedItems.contains { $0.id == manualId },
+            "Manual tag UUID must be preserved across re-scan (appliedReplacements key stability)")
+        XCTAssertNotNil(detector.appliedReplacements[manualId],
+            "appliedReplacements entry must survive re-scan via UUID preservation")
+    }
+
+    func testManualTagSurvivesReScanWithAppendedText() async throws {
+        let original = "Contact at alice@corp.com for details."
+        let extended = original + " Updated: added more context here."
+        let detector = PIIDetector()
+        detector.redactionMode = .token
+        detector.scan(text: original)
+        await waitForProcessing(detector)
+
+        // Add manual tag "alice@corp.com" — but NLTagger + regex already detect it,
+        // so tag something that auto-detection won't pick up ("Contact" as custom PII).
+        guard let tagRange = original.range(of: "alice@corp.com") else {
+            XCTFail("Precondition: email must be in text"); return
+        }
+        // The email is already auto-detected; use the word "details" as a custom tag.
+        guard let customRange = original.range(of: "details") else {
+            XCTFail("Precondition: 'details' must be in text"); return
+        }
+        try detector.addManualTag(range: customRange, type: .custom, in: original)
+
+        let manualId = try XCTUnwrap(
+            detector.detectedItems.first(where: { $0.isManual })?.id,
+            "Manual item should exist after tagging 'details'")
+
+        // Re-scan the extended text (user typed more at the end)
+        detector.scan(text: extended)
+        await waitForProcessing(detector)
+
+        XCTAssertTrue(detector.detectedItems.contains { $0.isManual },
+            "Manual tag must survive re-scan when text is extended after the tag")
+        XCTAssertTrue(detector.detectedItems.contains { $0.id == manualId },
+            "UUID must be preserved when text is appended after the manual tag")
+    }
+
+    func testManualTagDroppedWhenOriginalTextDeleted() async throws {
+        // Use text with no auto-detected PII so the manual range doesn't overlap
+        let original = "The project status update is pending review."
+        let detector = PIIDetector()
+        detector.redactionMode = .token
+        detector.scan(text: original)
+        await waitForProcessing(detector)
+
+        // Confirm no auto-detection (so "pending" is taggable without overlap)
+        XCTAssertTrue(detector.detectedItems.isEmpty, "Precondition: clean text should have no auto-tags")
+
+        guard let tagRange = original.range(of: "pending") else {
+            XCTFail("Precondition: 'pending' must be in text"); return
+        }
+        try detector.addManualTag(range: tagRange, type: .custom, in: original)
+        XCTAssertTrue(detector.detectedItems.contains { $0.isManual }, "Precondition")
+
+        // Re-scan after the tagged word is removed
+        let modified = "The project status update is under review."
+        detector.scan(text: modified)
+        await waitForProcessing(detector)
+
+        XCTAssertFalse(detector.detectedItems.contains { $0.isManual },
+            "Manual tag must be dropped when its original text no longer exists in the new input")
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

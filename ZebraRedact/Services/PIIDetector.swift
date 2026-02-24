@@ -26,7 +26,11 @@ final class PIIDetector: ObservableObject {
     @Published var privacyScore: Int = 100
     @Published var isProcessing: Bool = false
     @Published var enabledCategories: Set<PIIType> = Set(PIIType.allCases)
-    @Published var redactionMode: RedactionMode = .semantic
+    @Published var redactionMode: RedactionMode = .token {
+        didSet {
+            UserDefaults.standard.set(redactionMode.rawValue, forKey: "redactionMode")
+        }
+    }
     @Published var semanticContext: SemanticContext?
     /// Maps each item ID → the text actually placed in ghostedText for that item
     @Published var appliedReplacements: [UUID: String] = [:]
@@ -53,6 +57,11 @@ final class PIIDetector: ObservableObject {
             foundationEngine = FoundationModelEngine()
         }
         #endif
+        // Restore the last-used mode; default is .token on first launch.
+        if let saved = UserDefaults.standard.string(forKey: "redactionMode"),
+           let mode = RedactionMode(rawValue: saved) {
+            redactionMode = mode
+        }
     }
 
     // MARK: - Computed Properties
@@ -111,16 +120,37 @@ final class PIIDetector: ObservableObject {
     func scan(text: String) {
         isProcessing = true
 
+        // Preserve manual tags across re-scans: save them before detection runs.
+        // After detecting auto items, we re-anchor each manual tag by searching
+        // for its original text in the new input.  Tags whose text was deleted
+        // are dropped; tags for text still present are re-added with their
+        // existing UUID (so appliedReplacements entries survive unchanged).
+        let previousManualItems = detectedItems.filter { $0.isManual }
+
         // Invalidate LLM cache whenever the source text changes
         if llmResultCache?.inputText != text { llmResultCache = nil }
 
         let allItems = detector.detect(in: text)
         let filtered = allItems.filter { enabledCategories.contains($0.type) }
 
+        // Re-anchor surviving manual items
+        var preserved: [PIIItem] = []
+        for manual in previousManualItems {
+            guard let newRange = text.range(of: manual.originalText, options: .literal) else { continue }
+            let overlaps = filtered.contains { s in
+                newRange.lowerBound < s.range.upperBound && s.range.lowerBound < newRange.upperBound
+            }
+            guard !overlaps else { continue }
+            preserved.append(manual.withRange(newRange))
+        }
+
+        let combined = (filtered + preserved)
+            .sorted { $0.range.lowerBound < $1.range.lowerBound }
+
         // Don't update detectedItems here — update it atomically with ghostedText
         // in applyMasking to avoid a window where items exist but text is stale.
         Task {
-            await applyMasking(to: text, newItems: filtered)
+            await applyMasking(to: text, newItems: combined)
             await MainActor.run {
                 isProcessing = false
             }
@@ -261,7 +291,12 @@ final class PIIDetector: ObservableObject {
             ghostedText = result
             appliedReplacements = applied
             privacyScore = calculateScore(items: items)
-            GhostMappingStore.shared.storeBatch(items: items)
+            // Store the ACTUAL replacement (not ghostToken) so re-hydration can reverse
+            // semantic/LLM replacements like "Emma Wilson" back to the original name.
+            for item in items where item.isMasked {
+                let replacement = applied[item.id] ?? item.ghostToken
+                GhostMappingStore.shared.store(token: replacement, original: item.originalText, type: item.type)
+            }
         }
     }
 
@@ -297,13 +332,11 @@ final class PIIDetector: ObservableObject {
     func removeItem(_ item: PIIItem, originalText: String) {
         appliedReplacements.removeValue(forKey: item.id)
         detectedItems.removeAll { $0.id == item.id }
-        // Rebuild ghostedText from originalText using remaining items
-        var result = originalText
-        for remaining in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where remaining.isMasked {
-            let replacement = appliedReplacements[remaining.id] ?? remaining.ghostToken
-            result.replaceSubrange(remaining.range, with: replacement)
-        }
-        ghostedText = result
+        let (text, applied) = buildMaskedText(from: originalText,
+                                              items: detectedItems,
+                                              replacements: appliedReplacements)
+        ghostedText = text
+        appliedReplacements = applied
         privacyScore = calculateScore(items: detectedItems)
     }
 
@@ -321,16 +354,43 @@ final class PIIDetector: ObservableObject {
     /// item.ghostToken for any item that has no existing entry.
     /// Always updates appliedReplacements so ClickableTokenTextView stays in sync.
     func remask(originalText: String) {
-        var result = originalText
-        var newApplied: [UUID: String] = [:]
-        for item in detectedItems.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-            let replacement = appliedReplacements[item.id] ?? item.ghostToken
-            result.replaceSubrange(item.range, with: replacement)
-            newApplied[item.id] = replacement
-        }
-        ghostedText = result
-        appliedReplacements = newApplied
+        let (text, applied) = buildMaskedText(from: originalText,
+                                              items: detectedItems,
+                                              replacements: appliedReplacements)
+        ghostedText = text
+        appliedReplacements = applied
         privacyScore = calculateScore(items: detectedItems)
+    }
+
+    /// Build the redacted string by walking *forward* through `originalText` and
+    /// substituting each masked item's replacement inline.
+    ///
+    /// This avoids the crash-prone "reverse replaceSubrange" pattern: after each
+    /// replaceSubrange call the underlying buffer can be reallocated, and String.Index
+    /// values from the original string may become out-of-bounds in the mutated copy
+    /// when accumulated length deltas push a later item's upperBound past endIndex.
+    /// By always indexing into the immutable `originalText` we guarantee every
+    /// stored Range<String.Index> is valid for the lifetime of the loop.
+    private func buildMaskedText(from originalText: String,
+                                 items: [PIIItem],
+                                 replacements: [UUID: String]) -> (text: String, applied: [UUID: String]) {
+        let sorted = items
+            .filter { $0.isMasked }
+            .sorted { $0.range.lowerBound < $1.range.lowerBound }
+        var result = ""
+        var applied: [UUID: String] = [:]
+        var cursor = originalText.startIndex
+        for item in sorted {
+            guard item.range.lowerBound >= cursor,
+                  item.range.upperBound <= originalText.endIndex else { continue }
+            result += originalText[cursor..<item.range.lowerBound]
+            let replacement = replacements[item.id] ?? item.ghostToken
+            result += replacement
+            applied[item.id] = replacement
+            cursor = item.range.upperBound
+        }
+        result += originalText[cursor...]
+        return (result, applied)
     }
 
     /// Change one item's replacement to a specific alternative, then rebuild.
@@ -341,6 +401,34 @@ final class PIIDetector: ObservableObject {
         detectedItems[index].selectedAlternativeId = alternative.id
         appliedReplacements[itemId] = alternative.text   // must happen BEFORE remask
         remask(originalText: originalText)
+    }
+
+    // MARK: - Retag (change type of existing item)
+
+    /// Change the PII type of an existing item, regenerate its alternatives, and remask.
+    /// Returns the updated PIIItem so the caller can refresh any binding pointing at the old value.
+    @discardableResult
+    func retagItem(_ item: PIIItem, as newType: PIIType, originalText: String) -> PIIItem? {
+        guard let index = detectedItems.firstIndex(where: { $0.id == item.id }) else { return nil }
+        let newAlts = PIIItem.generateAlternatives(for: newType, original: item.originalText)
+        guard let firstAlt = newAlts.first else { return nil }
+
+        let retagged = PIIItem(
+            preservingId: item.id,
+            type: newType,
+            range: item.range,
+            originalText: item.originalText,
+            alternatives: newAlts,
+            selectedAlternativeId: firstAlt.id,
+            confidence: item.confidence,
+            isMasked: item.isMasked,
+            isManual: item.isManual
+        )
+        detectedItems[index] = retagged
+        appliedReplacements[item.id] = firstAlt.text
+        remask(originalText: originalText)
+        GhostMappingStore.shared.store(token: firstAlt.text, original: item.originalText, type: newType)
+        return retagged
     }
 
     // MARK: - Manual Tagging
@@ -390,7 +478,7 @@ final class PIIDetector: ObservableObject {
         remask(originalText: text)
 
         GhostMappingStore.shared.store(
-            token: manualItem.ghostToken,
+            token: newReplacement,
             original: selectedText,
             type: type
         )

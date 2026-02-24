@@ -111,6 +111,31 @@ struct PIIItem: Identifiable, Equatable {
         self.isManual = isManual
     }
 
+    /// Copy an item with an updated range, preserving its UUID so that `appliedReplacements`
+    /// entries (keyed by `id`) survive a re-scan when the user edits surrounding text.
+    func withRange(_ newRange: Range<String.Index>) -> PIIItem {
+        PIIItem(preservingId: id, type: type, range: newRange, originalText: originalText,
+                alternatives: alternatives, selectedAlternativeId: selectedAlternativeId,
+                confidence: confidence, isMasked: isMasked, isManual: isManual)
+    }
+
+    /// Internal initializer that preserves an existing UUID (used when re-anchoring
+    /// a manual tag after the surrounding text changes).
+    init(preservingId existingId: UUID, type: PIIType, range: Range<String.Index>,
+         originalText: String, alternatives: [RedactionAlternative],
+         selectedAlternativeId: UUID, confidence: Double = 1.0,
+         isMasked: Bool = true, isManual: Bool = true) {
+        self.id = existingId
+        self.type = type
+        self.range = range
+        self.originalText = originalText
+        self.alternatives = alternatives
+        self.selectedAlternativeId = selectedAlternativeId
+        self.confidence = confidence
+        self.isMasked = isMasked
+        self.isManual = isManual
+    }
+
     // MARK: - Fake data pools (varied, international)
 
     private enum FakeData {
@@ -149,6 +174,14 @@ struct PIIItem: Identifiable, Equatable {
             let hash = abs(seed.unicodeScalars.reduce(0) { $0 &+ Int($1.value) })
             return pool[hash % pool.count]
         }
+
+        /// Like pick, but guarantees the result differs from the original (case-insensitive).
+        static func pickExcluding(_ pool: [String], seed: String, original: String) -> String {
+            let filtered = pool.filter { $0.caseInsensitiveCompare(original) != .orderedSame }
+            let actualPool = filtered.isEmpty ? pool : filtered
+            let hash = abs(seed.unicodeScalars.reduce(0) { $0 &+ Int($1.value) })
+            return actualPool[hash % actualPool.count]
+        }
     }
 
     /// Generate default alternatives for this PII type
@@ -157,7 +190,7 @@ struct PIIItem: Identifiable, Equatable {
 
         switch type {
         case .email:
-            let fakeEmail = FakeData.pick(FakeData.emails, seed: original)
+            let fakeEmail = FakeData.pickExcluding(FakeData.emails, seed: original, original: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[EMAIL_\(tokenId)]", description: "Unique identifier token"),
                 RedactionAlternative(strategy: .semantic, text: fakeEmail, description: "Realistic fake email"),
@@ -167,7 +200,7 @@ struct PIIItem: Identifiable, Equatable {
             ]
 
         case .phone:
-            let fakePhone = FakeData.pick(FakeData.phones, seed: original)
+            let fakePhone = FakeData.pickExcluding(FakeData.phones, seed: original, original: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[PHONE_\(tokenId)]", description: "Unique identifier token"),
                 RedactionAlternative(strategy: .semantic, text: fakePhone, description: "Realistic fake number"),
@@ -193,7 +226,7 @@ struct PIIItem: Identifiable, Equatable {
             ]
 
         case .ipAddress:
-            let fakeIP = FakeData.pick(FakeData.ipAddresses, seed: original)
+            let fakeIP = FakeData.pickExcluding(FakeData.ipAddresses, seed: original, original: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[IP_\(tokenId)]", description: "Unique identifier token"),
                 RedactionAlternative(strategy: .semantic, text: fakeIP, description: "Fake private IP address"),
@@ -210,7 +243,7 @@ struct PIIItem: Identifiable, Equatable {
             ]
 
         case .name:
-            let fakeName = FakeData.pick(FakeData.names, seed: original)
+            let fakeName = FakeData.pickExcluding(FakeData.names, seed: original, original: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[NAME_\(tokenId)]", description: "Unique identifier token"),
                 RedactionAlternative(strategy: .semantic, text: fakeName, description: "Varied fake name"),
@@ -220,7 +253,7 @@ struct PIIItem: Identifiable, Equatable {
             ]
 
         case .address:
-            let fakeAddr = FakeData.pick(FakeData.addresses, seed: original)
+            let fakeAddr = FakeData.pickExcluding(FakeData.addresses, seed: original, original: original)
             return [
                 RedactionAlternative(strategy: .token, text: "[ADDR_\(tokenId)]", description: "Unique identifier token"),
                 RedactionAlternative(strategy: .semantic, text: fakeAddr, description: "Varied fake address"),

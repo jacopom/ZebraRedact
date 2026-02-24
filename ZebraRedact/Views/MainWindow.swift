@@ -283,7 +283,7 @@ struct MainWindow: View {
             // Redacted text area
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 ClickableTokenTextView(
-                    text: detector.ghostedText,
+                    text: detector.redactedText,
                     items: detector.detectedItems,
                     onTokenClick: { item in
                         selectedToken = item
@@ -304,7 +304,7 @@ struct MainWindow: View {
                     Spacer()
 
                     Button {
-                        copyToClipboard(detector.ghostedText)
+                        copyToClipboard(detector.redactedText)
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "doc.on.doc")
@@ -663,7 +663,7 @@ struct AlternativesDropdown: View {
                         Text("Current:")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        Text(item.ghostToken)
+                        Text(item.token)
                             .font(.system(.callout, design: .monospaced))
                             .fontWeight(.semibold)
                             .foregroundColor(.blue)

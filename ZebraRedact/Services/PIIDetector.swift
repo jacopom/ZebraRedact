@@ -22,7 +22,7 @@ enum PIIError: LocalizedError {
 @MainActor
 final class PIIDetector: ObservableObject {
     @Published var detectedItems: [PIIItem] = []
-    @Published var ghostedText: String = ""
+    @Published var redactedText: String = ""
     @Published var privacyScore: Int = 100
     @Published var isProcessing: Bool = false
     @Published var enabledCategories: Set<PIIType> = Set(PIIType.allCases)
@@ -32,7 +32,7 @@ final class PIIDetector: ObservableObject {
         }
     }
     @Published var semanticContext: SemanticContext?
-    /// Maps each item ID → the text actually placed in ghostedText for that item
+    /// Maps each item ID → the text actually placed in redactedText for that item
     @Published var appliedReplacements: [UUID: String] = [:]
 
     private let detector = NLTaggerDetector()
@@ -44,7 +44,7 @@ final class PIIDetector: ObservableObject {
 
     /// Cache of LLM-Aware results keyed by input text — avoids re-running the LLM
     /// when the user switches away from LLM-Aware mode and then back.
-    private var llmResultCache: (inputText: String, items: [PIIItem], ghosted: String, applied: [UUID: String])? = nil
+    private var llmResultCache: (inputText: String, items: [PIIItem], redacted: String, applied: [UUID: String])? = nil
 
     init(modelManager: ModelManager? = nil) {
         self.modelManager = modelManager
@@ -87,7 +87,7 @@ final class PIIDetector: ObservableObject {
     var confidenceAssessment: ConfidenceAssessment? {
         guard !detectedItems.isEmpty else { return nil }
 
-        let wordCount = max(1.0, Double(ghostedText.split(separator: " ").count))
+        let wordCount = max(1.0, Double(redactedText.split(separator: " ").count))
         let redactionRatio = Double(detectedItems.count) / wordCount
 
         let taskCompletability = max(20, 100 - Int(redactionRatio * 200))
@@ -147,7 +147,7 @@ final class PIIDetector: ObservableObject {
         let combined = (filtered + preserved)
             .sorted { $0.range.lowerBound < $1.range.lowerBound }
 
-        // Don't update detectedItems here — update it atomically with ghostedText
+        // Don't update detectedItems here — update it atomically with redactedText
         // in applyMasking to avoid a window where items exist but text is stale.
         Task {
             await applyMasking(to: text, newItems: combined)
@@ -165,8 +165,8 @@ final class PIIDetector: ObservableObject {
         switch redactionMode {
         case .token:
             for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-                result.replaceSubrange(item.range, with: item.ghostToken)
-                applied[item.id] = item.ghostToken
+                result.replaceSubrange(item.range, with: item.token)
+                applied[item.id] = item.token
             }
 
         case .semantic:
@@ -175,8 +175,8 @@ final class PIIDetector: ObservableObject {
                     result.replaceSubrange(item.range, with: semanticAlt.text)
                     applied[item.id] = semanticAlt.text
                 } else {
-                    result.replaceSubrange(item.range, with: item.ghostToken)
-                    applied[item.id] = item.ghostToken
+                    result.replaceSubrange(item.range, with: item.token)
+                    applied[item.id] = item.token
                 }
             }
 
@@ -205,7 +205,7 @@ final class PIIDetector: ObservableObject {
                         items: items
                     )
                     for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-                        let replacement = replacements[item.id] ?? item.ghostToken
+                        let replacement = replacements[item.id] ?? item.token
                         result.replaceSubrange(item.range, with: replacement)
                         applied[item.id] = replacement
                     }
@@ -235,7 +235,7 @@ final class PIIDetector: ObservableObject {
                         for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
                             let replacement = replacements[item.id]
                                 ?? item.alternatives.first(where: { $0.strategy == .semantic })?.text
-                                ?? item.ghostToken
+                                ?? item.token
                             result.replaceSubrange(item.range, with: replacement)
                             applied[item.id] = replacement
                         }
@@ -255,7 +255,7 @@ final class PIIDetector: ObservableObject {
                             items: items
                         )
                         for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-                            let replacement = replacements[item.id] ?? item.ghostToken
+                            let replacement = replacements[item.id] ?? item.token
                             result.replaceSubrange(item.range, with: replacement)
                             applied[item.id] = replacement
                         }
@@ -272,8 +272,8 @@ final class PIIDetector: ObservableObject {
                             result.replaceSubrange(item.range, with: semanticAlt.text)
                             applied[item.id] = semanticAlt.text
                         } else {
-                            result.replaceSubrange(item.range, with: item.ghostToken)
-                            applied[item.id] = item.ghostToken
+                            result.replaceSubrange(item.range, with: item.token)
+                            applied[item.id] = item.token
                         }
                     }
                 }
@@ -283,19 +283,19 @@ final class PIIDetector: ObservableObject {
         await MainActor.run {
             // Cache LLM-Aware results so re-entering the mode doesn't re-run the LLM.
             if redactionMode == .llmAware {
-                llmResultCache = (inputText: text, items: items, ghosted: result, applied: applied)
+                llmResultCache = (inputText: text, items: items, redacted: result, applied: applied)
             }
-            // Update detectedItems and ghostedText together so ClickableTokenTextView
+            // Update detectedItems and redactedText together so ClickableTokenTextView
             // always sees a consistent state — no window where items exist in a stale text.
             detectedItems = items
-            ghostedText = result
+            redactedText = result
             appliedReplacements = applied
             privacyScore = calculateScore(items: items)
-            // Store the ACTUAL replacement (not ghostToken) so re-hydration can reverse
+            // Store the ACTUAL replacement (not token) so re-hydration can reverse
             // semantic/LLM replacements like "Emma Wilson" back to the original name.
             for item in items where item.isMasked {
-                let replacement = applied[item.id] ?? item.ghostToken
-                GhostMappingStore.shared.store(token: replacement, original: item.originalText, type: item.type)
+                let replacement = applied[item.id] ?? item.token
+                TokenMappingStore.shared.store(token: replacement, original: item.originalText, type: item.type)
             }
         }
     }
@@ -312,7 +312,7 @@ final class PIIDetector: ObservableObject {
            let cache = llmResultCache,
            cache.inputText == originalText {
             detectedItems = cache.items
-            ghostedText = cache.ghosted
+            redactedText = cache.redacted
             appliedReplacements = cache.applied
             privacyScore = calculateScore(items: cache.items)
             return
@@ -335,7 +335,7 @@ final class PIIDetector: ObservableObject {
         let (text, applied) = buildMaskedText(from: originalText,
                                               items: detectedItems,
                                               replacements: appliedReplacements)
-        ghostedText = text
+        redactedText = text
         appliedReplacements = applied
         privacyScore = calculateScore(items: detectedItems)
     }
@@ -349,15 +349,15 @@ final class PIIDetector: ObservableObject {
 
     // MARK: - Re-mask After Toggling
 
-    /// Rebuild ghostedText from originalText, preserving existing replacements from
+    /// Rebuild redactedText from originalText, preserving existing replacements from
     /// appliedReplacements (semantic fakes, LLM output, etc.) and falling back to
-    /// item.ghostToken for any item that has no existing entry.
+    /// item.token for any item that has no existing entry.
     /// Always updates appliedReplacements so ClickableTokenTextView stays in sync.
     func remask(originalText: String) {
         let (text, applied) = buildMaskedText(from: originalText,
                                               items: detectedItems,
                                               replacements: appliedReplacements)
-        ghostedText = text
+        redactedText = text
         appliedReplacements = applied
         privacyScore = calculateScore(items: detectedItems)
     }
@@ -384,7 +384,7 @@ final class PIIDetector: ObservableObject {
             guard item.range.lowerBound >= cursor,
                   item.range.upperBound <= originalText.endIndex else { continue }
             result += originalText[cursor..<item.range.lowerBound]
-            let replacement = replacements[item.id] ?? item.ghostToken
+            let replacement = replacements[item.id] ?? item.token
             result += replacement
             applied[item.id] = replacement
             cursor = item.range.upperBound
@@ -427,7 +427,7 @@ final class PIIDetector: ObservableObject {
         detectedItems[index] = retagged
         appliedReplacements[item.id] = firstAlt.text
         remask(originalText: originalText)
-        GhostMappingStore.shared.store(token: firstAlt.text, original: item.originalText, type: newType)
+        TokenMappingStore.shared.store(token: firstAlt.text, original: item.originalText, type: newType)
         return retagged
     }
 
@@ -465,10 +465,10 @@ final class PIIDetector: ObservableObject {
         let newReplacement: String
         switch redactionMode {
         case .token:
-            newReplacement = manualItem.ghostToken
+            newReplacement = manualItem.token
         case .semantic, .llmAware:
             newReplacement = manualItem.alternatives.first(where: { $0.strategy == .semantic })?.text
-                ?? manualItem.ghostToken
+                ?? manualItem.token
         }
         appliedReplacements[manualItem.id] = newReplacement
 
@@ -477,7 +477,7 @@ final class PIIDetector: ObservableObject {
 
         remask(originalText: text)
 
-        GhostMappingStore.shared.store(
+        TokenMappingStore.shared.store(
             token: newReplacement,
             original: selectedText,
             type: type

@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-enum GhostTheme {
+enum ZebraTheme {
     // MARK: - Primary Colors
     static let purple = Color(hex: 0x6B46C1)
     static let red = Color(hex: 0xDC2626)

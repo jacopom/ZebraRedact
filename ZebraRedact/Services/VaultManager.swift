@@ -44,7 +44,7 @@ final class VaultManager: ObservableObject {
     // MARK: - CRUD
 
     func addEntry(label: String, value: String) -> VaultEntry? {
-        let entry = VaultEntry(label: label, ghostToken: "[GHOST_\(UUID().uuidString.prefix(4).uppercased())]")
+        let entry = VaultEntry(label: label, token: "[VLT_\(UUID().uuidString.prefix(4).uppercased())]")
 
         let keychainItem: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -62,7 +62,7 @@ final class VaultManager: ObservableObject {
             return nil
         }
 
-        // Persist metadata (label + ghostToken mapping)
+        // Persist metadata (label + token mapping)
         persistEntryMetadata(entry)
         entries.append(entry)
         return entry
@@ -101,7 +101,7 @@ final class VaultManager: ObservableObject {
         var result = text
         for entry in entries {
             if let value = retrieveValue(for: entry) {
-                result = result.replacingOccurrences(of: entry.ghostToken, with: value)
+                result = result.replacingOccurrences(of: entry.token, with: value)
             }
         }
         return result

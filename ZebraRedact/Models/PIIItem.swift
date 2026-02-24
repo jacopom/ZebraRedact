@@ -81,7 +81,7 @@ struct PIIItem: Identifiable, Equatable {
     var isManual: Bool
 
     /// The currently selected ghost token
-    var ghostToken: String {
+    var token: String {
         alternatives.first { $0.id == selectedAlternativeId }?.text ?? "[REDACTED]"
     }
 
@@ -279,13 +279,13 @@ struct PIIItem: Identifiable, Equatable {
 struct VaultEntry: Identifiable, Codable {
     let id: UUID
     var label: String
-    var ghostToken: String
+    var token: String
     let createdAt: Date
 
-    init(label: String, ghostToken: String) {
+    init(label: String, token: String) {
         self.id = UUID()
         self.label = label
-        self.ghostToken = ghostToken
+        self.token = token
         self.createdAt = Date()
     }
 }

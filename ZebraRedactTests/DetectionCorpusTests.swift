@@ -142,7 +142,7 @@ let corpus: [DetectionCase] = [
     // Bug: same entity appearing at multiple positions in the text (e.g. "Maya"
     // appears twice) produced duplicate entries in appliedReplacements and sidebar.
     // Fix: deduplication in UI (uniqueRedactedItems) + same alternatives reused.
-    DetectionCase("REGRESSION — duplicate person name doesn't corrupt ghostedText",
+    DetectionCase("REGRESSION — duplicate person name doesn't corrupt redactedText",
         text: "Maya was present. The teacher spoke with Maya again later.",
         detect: [(.name, "Maya")]),
 
@@ -441,9 +441,9 @@ final class DetectorIntegrationTests: XCTestCase {
         await Task.yield()
     }
 
-    // ── ghostedText must never contain the original PII ───────────────────────
+    // ── redactedText must never contain the original PII ───────────────────────
 
-    func testTokenModeGhostedTextContainsNoPII() async {
+    func testTokenModeRedactedTextContainsNoPII() async {
         let texts = [
             "Email alice@work.io or call (415) 555-0192.",
             "SSN: 219-77-4450  Card: 4111-1111-1111-1111  IP: 10.10.1.50",
@@ -455,34 +455,34 @@ final class DetectorIntegrationTests: XCTestCase {
             d.scan(text: text)
             await waitForPII(d)
             for item in d.detectedItems where item.isMasked {
-                XCTAssertFalse(d.ghostedText.contains(item.originalText),
-                    "Token mode: ghostedText still contains \"\(item.originalText)\"")
+                XCTAssertFalse(d.redactedText.contains(item.originalText),
+                    "Token mode: redactedText still contains \"\(item.originalText)\"")
             }
         }
     }
 
-    func testSemanticModeGhostedTextContainsNoPII() async {
+    func testSemanticModeRedactedTextContainsNoPII() async {
         let text = "Contact grace@ops.io or +1 (650) 555-0192 for the monthly report."
         let d = PIIDetector()
         d.redactionMode = .semantic
         d.scan(text: text)
         await waitForPII(d)
         for item in d.detectedItems where item.isMasked {
-            XCTAssertFalse(d.ghostedText.contains(item.originalText),
-                "Semantic mode: ghostedText still contains \"\(item.originalText)\"")
+            XCTAssertFalse(d.redactedText.contains(item.originalText),
+                "Semantic mode: redactedText still contains \"\(item.originalText)\"")
         }
     }
 
     // ── appliedReplacements stay in sync ─────────────────────────────────────
 
-    func testAppliedReplacementsAllPresentInGhostedText() async {
+    func testAppliedReplacementsAllPresentInRedactedText() async {
         let text = "From: bob@acme.com  Phone: (212) 555-0134  SSN: 123-45-6789"
         let d = PIIDetector()
         d.scan(text: text)
         await waitForPII(d)
         for (_, replacement) in d.appliedReplacements {
-            XCTAssertTrue(d.ghostedText.contains(replacement),
-                "appliedReplacement '\(replacement)' not found in ghostedText")
+            XCTAssertTrue(d.redactedText.contains(replacement),
+                "appliedReplacement '\(replacement)' not found in redactedText")
         }
     }
 
@@ -497,13 +497,13 @@ final class DetectorIntegrationTests: XCTestCase {
             d.remaskCurrentItems(originalText: text)
             await waitForPII(d)
             for (_, replacement) in d.appliedReplacements {
-                XCTAssertTrue(d.ghostedText.contains(replacement),
-                    "[\(mode)] appliedReplacement '\(replacement)' not in ghostedText after remask")
+                XCTAssertTrue(d.redactedText.contains(replacement),
+                    "[\(mode)] appliedReplacement '\(replacement)' not in redactedText after remask")
             }
         }
     }
 
-    // ── GhostMappingStore rehydration round-trip ──────────────────────────────
+    // ── TokenMappingStore rehydration round-trip ──────────────────────────────
 
     func testRehydrationRoundTripTokenMode() async {
         let original = "Send report to ida@finance.io and call (312) 555-0178."
@@ -512,10 +512,10 @@ final class DetectorIntegrationTests: XCTestCase {
         d.scan(text: original)
         await waitForPII(d)
 
-        let ghosted = d.ghostedText
-        XCTAssertNotEqual(ghosted, original, "ghostedText must differ from original")
+        let redacted = d.redactedText
+        XCTAssertNotEqual(redacted, original, "redactedText must differ from original")
 
-        let restored = GhostMappingStore.shared.rehydrate(ghosted)
+        let restored = TokenMappingStore.shared.rehydrate(redacted)
         // The restored text should contain the original PII values
         for item in d.detectedItems where item.isMasked {
             XCTAssertTrue(restored.contains(item.originalText),
@@ -530,12 +530,12 @@ final class DetectorIntegrationTests: XCTestCase {
         d.scan(text: original)
         await waitForPII(d)
 
-        let ghosted = d.ghostedText
-        let restored = GhostMappingStore.shared.rehydrate(ghosted)
+        let redacted = d.redactedText
+        let restored = TokenMappingStore.shared.rehydrate(redacted)
 
         for item in d.detectedItems where item.isMasked {
             XCTAssertTrue(restored.contains(item.originalText),
-                "Semantic mode rehydration missing '\(item.originalText)' — GhostMappingStore may be storing ghostToken instead of actual replacement")
+                "Semantic mode rehydration missing '\(item.originalText)' — TokenMappingStore may be storing token instead of actual replacement")
         }
     }
 
@@ -552,12 +552,12 @@ final class DetectorIntegrationTests: XCTestCase {
         d.scan(text: text)
         await waitForPII(d)
 
-        // "Maya" should not appear in the ghosted output at all
+        // "Maya" should not appear in the redacted output at all
         // (both occurrences must be replaced)
         let mayaItems = d.detectedItems.filter { $0.originalText == "Maya" }
         guard !mayaItems.isEmpty else { return } // NLTagger may not detect first names — not a failure
 
-        XCTAssertFalse(d.ghostedText.contains("Maya"),
-            "Both occurrences of 'Maya' must be redacted, but at least one remains in ghostedText")
+        XCTAssertFalse(d.redactedText.contains("Maya"),
+            "Both occurrences of 'Maya' must be redacted, but at least one remains in redactedText")
     }
 }

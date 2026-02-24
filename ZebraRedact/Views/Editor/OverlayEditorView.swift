@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum EditorMode: String, CaseIterable {
-    case highlight = "Ghost"
+    case highlight = "Redact"
     case preview = "Preview"
     case rehydrate = "Rehydrate"
 }
@@ -44,7 +44,7 @@ struct OverlayEditorView: View {
             minWidth: ZebraRedactConstants.Overlay.minWidth,
             minHeight: ZebraRedactConstants.Overlay.minHeight
         )
-        .background(GhostTheme.panelBackground)
+        .background(ZebraTheme.panelBackground)
         .onAppear {
             detector.scan(text: originalText)
         }
@@ -56,11 +56,11 @@ struct OverlayEditorView: View {
         HStack(spacing: 12) {
             Image(systemName: "theatermasks.fill")
                 .font(.title2)
-                .foregroundStyle(GhostTheme.purple)
+                .foregroundStyle(ZebraTheme.purple)
 
             Text("ZebraRedact")
-                .font(GhostTheme.titleFont)
-                .foregroundStyle(GhostTheme.purple)
+                .font(ZebraTheme.titleFont)
+                .foregroundStyle(ZebraTheme.purple)
 
             Spacer()
 
@@ -100,7 +100,7 @@ struct OverlayEditorView: View {
                     )
                 }
             case .preview:
-                GhostedPreviewView(text: detector.ghostedText)
+                RedactedPreviewView(text: detector.redactedText)
             case .rehydrate:
                 rehydrateArea
             }
@@ -116,7 +116,7 @@ struct OverlayEditorView: View {
                 HStack {
                     Label("LLM Response", systemImage: "text.bubble")
                         .font(.caption.bold())
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
                         .textCase(.uppercase)
                         .tracking(0.5)
                     Spacer()
@@ -152,7 +152,7 @@ struct OverlayEditorView: View {
                 HStack {
                     Label("Rehydrated Output", systemImage: "arrow.uturn.backward.circle.fill")
                         .font(.caption.bold())
-                        .foregroundStyle(GhostTheme.green)
+                        .foregroundStyle(ZebraTheme.green)
                         .textCase(.uppercase)
                         .tracking(0.5)
 
@@ -161,8 +161,8 @@ struct OverlayEditorView: View {
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(GhostTheme.green.opacity(0.15))
-                            .foregroundStyle(GhostTheme.green)
+                            .background(ZebraTheme.green.opacity(0.15))
+                            .foregroundStyle(ZebraTheme.green)
                             .clipShape(Capsule())
                     }
 
@@ -174,18 +174,18 @@ struct OverlayEditorView: View {
                 RehydratedTextView(
                     originalText: rehydrateInput,
                     rehydratedText: rehydrateOutput,
-                    mappings: GhostMappingStore.shared.findTokens(in: rehydrateInput)
+                    mappings: TokenMappingStore.shared.findTokens(in: rehydrateInput)
                 )
                 .padding(.horizontal, 4)
             }
             .frame(maxHeight: .infinity)
-            .background(GhostTheme.green.opacity(0.02))
+            .background(ZebraTheme.green.opacity(0.02))
         }
     }
 
     private func performRehydration() {
-        rehydrateOutput = GhostMappingStore.shared.rehydrate(rehydrateInput)
-        rehydrateTokenCount = GhostMappingStore.shared.rehydrationCount(in: rehydrateInput)
+        rehydrateOutput = TokenMappingStore.shared.rehydrate(rehydrateInput)
+        rehydrateTokenCount = TokenMappingStore.shared.rehydrationCount(in: rehydrateInput)
     }
 
     // MARK: - Empty State
@@ -194,10 +194,10 @@ struct OverlayEditorView: View {
         VStack(spacing: 16) {
             Image(systemName: "text.cursor")
                 .font(.system(size: 40))
-                .foregroundStyle(GhostTheme.tertiaryText)
+                .foregroundStyle(ZebraTheme.tertiaryText)
             Text("Paste or type text to scan for PII")
                 .font(.title3)
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
 
             HStack(spacing: 12) {
                 Button {
@@ -209,7 +209,7 @@ struct OverlayEditorView: View {
                     Label("Paste Clipboard", systemImage: "doc.on.clipboard")
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(GhostTheme.purple)
+                .tint(ZebraTheme.purple)
 
                 Button("Try Sample Text") {
                     originalText = sampleText
@@ -255,7 +255,7 @@ struct OverlayEditorView: View {
             }
             .padding(16)
         }
-        .background(GhostTheme.sidebarBackground)
+        .background(ZebraTheme.sidebarBackground)
     }
 
     // MARK: - Sidebar: Rehydrate Info
@@ -264,27 +264,27 @@ struct OverlayEditorView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Rehydrate")
                 .font(.caption.bold())
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
                 .textCase(.uppercase)
                 .tracking(0.5)
 
             VStack(alignment: .leading, spacing: 6) {
-                Label("\(GhostMappingStore.shared.count) tokens stored", systemImage: "key.fill")
+                Label("\(TokenMappingStore.shared.count) tokens stored", systemImage: "key.fill")
                     .font(.callout)
 
                 Label("\(rehydrateTokenCount) found in text", systemImage: "magnifyingglass")
                     .font(.callout)
-                    .foregroundStyle(rehydrateTokenCount > 0 ? GhostTheme.green : GhostTheme.secondaryText)
+                    .foregroundStyle(rehydrateTokenCount > 0 ? ZebraTheme.green : ZebraTheme.secondaryText)
             }
 
             Divider()
 
             Text("How it works")
                 .font(.caption.bold())
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
 
             VStack(alignment: .leading, spacing: 8) {
-                flowStep(num: "1", text: "Ghost your text (Ghost tab)")
+                flowStep(num: "1", text: "Redact your text (Redact tab)")
                 flowStep(num: "2", text: "Paste safe text into LLM")
                 flowStep(num: "3", text: "Copy LLM response here")
                 flowStep(num: "4", text: "Tokens get replaced back")
@@ -294,25 +294,25 @@ struct OverlayEditorView: View {
 
             // Token list
             if !rehydrateInput.isEmpty {
-                let tokens = GhostMappingStore.shared.findTokens(in: rehydrateInput)
+                let tokens = TokenMappingStore.shared.findTokens(in: rehydrateInput)
                 if !tokens.isEmpty {
                     Text("Matched Tokens")
                         .font(.caption.bold())
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
 
                     ForEach(tokens) { mapping in
                         HStack(spacing: 4) {
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(GhostTheme.highlightColor(for: mapping.type))
+                                .fill(ZebraTheme.highlightColor(for: mapping.type))
                                 .frame(width: 12, height: 12)
 
                             VStack(alignment: .leading, spacing: 0) {
                                 Text(mapping.token)
                                     .font(.caption2.monospaced().bold())
-                                    .foregroundStyle(GhostTheme.purple)
+                                    .foregroundStyle(ZebraTheme.purple)
                                 Text("→ " + mapping.originalValue.prefix(20) + (mapping.originalValue.count > 20 ? "..." : ""))
                                     .font(.caption2)
-                                    .foregroundStyle(GhostTheme.secondaryText)
+                                    .foregroundStyle(ZebraTheme.secondaryText)
                             }
                         }
                     }
@@ -326,12 +326,12 @@ struct OverlayEditorView: View {
             Text(num)
                 .font(.caption2.bold())
                 .frame(width: 18, height: 18)
-                .background(GhostTheme.purple.opacity(0.15))
+                .background(ZebraTheme.purple.opacity(0.15))
                 .clipShape(Circle())
-                .foregroundStyle(GhostTheme.purple)
+                .foregroundStyle(ZebraTheme.purple)
             Text(text)
                 .font(.caption)
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
         }
     }
 
@@ -341,23 +341,23 @@ struct OverlayEditorView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Privacy Score")
                 .font(.caption.bold())
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
                 .textCase(.uppercase)
                 .tracking(0.5)
 
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(detector.privacyScore)%")
                     .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundStyle(GhostTheme.scoreColor(for: detector.privacyScore))
+                    .foregroundStyle(ZebraTheme.scoreColor(for: detector.privacyScore))
 
                 Text(scoreLabel)
                     .font(.caption.bold())
-                    .foregroundStyle(GhostTheme.scoreColor(for: detector.privacyScore))
+                    .foregroundStyle(ZebraTheme.scoreColor(for: detector.privacyScore))
             }
 
-            Text("\(detector.detectedItems.filter(\.isMasked).count) of \(detector.detectedItems.count) items ghosted")
+            Text("\(detector.detectedItems.filter(\.isMasked).count) of \(detector.detectedItems.count) items redacted")
                 .font(.caption)
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
         }
     }
 
@@ -376,17 +376,17 @@ struct OverlayEditorView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Detected PII")
                 .font(.caption.bold())
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
                 .textCase(.uppercase)
                 .tracking(0.5)
 
             if detector.detectedItems.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(GhostTheme.green)
+                        .foregroundStyle(ZebraTheme.green)
                     Text("No PII detected")
                         .font(.callout)
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
                 }
                 .padding(.vertical, 4)
             } else {
@@ -420,13 +420,13 @@ struct OverlayEditorView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(copied ? GhostTheme.green : GhostTheme.purple)
+                .tint(copied ? ZebraTheme.green : ZebraTheme.purple)
                 .controlSize(.regular)
                 .disabled(rehydrateOutput.isEmpty)
                 .animation(.easeInOut(duration: 0.2), value: copied)
 
                 Button {
-                    GhostMappingStore.shared.clearAll()
+                    TokenMappingStore.shared.clearAll()
                     performRehydration()
                 } label: {
                     Label("Clear Token History", systemImage: "trash")
@@ -439,11 +439,11 @@ struct OverlayEditorView: View {
                     detector.maskAll()
                     detector.remask(originalText: originalText)
                 } label: {
-                    Label("Ghost All PII", systemImage: "eye.slash.fill")
+                    Label("Redact All PII", systemImage: "eye.slash.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(GhostTheme.purple)
+                .tint(ZebraTheme.purple)
                 .controlSize(.regular)
 
                 Button {
@@ -478,20 +478,20 @@ struct OverlayEditorView: View {
             if editorMode == .rehydrate {
                 Text("Paste the AI response above.")
                     .font(.caption)
-                    .foregroundStyle(GhostTheme.secondaryText)
-                Text("[GHOST_X] tokens will be restored.")
+                    .foregroundStyle(ZebraTheme.secondaryText)
+                Text("Tokens will be restored.")
                     .font(.caption)
-                    .foregroundStyle(GhostTheme.secondaryText)
+                    .foregroundStyle(ZebraTheme.secondaryText)
             } else {
                 Text("Highlighted text contains PII.")
                     .font(.caption)
-                    .foregroundStyle(GhostTheme.secondaryText)
-                Text("Click a category to toggle ghosting.")
+                    .foregroundStyle(ZebraTheme.secondaryText)
+                Text("Click a category to toggle redaction.")
                     .font(.caption)
-                    .foregroundStyle(GhostTheme.secondaryText)
+                    .foregroundStyle(ZebraTheme.secondaryText)
                 Text("Switch to Preview to see safe output.")
                     .font(.caption)
-                    .foregroundStyle(GhostTheme.secondaryText)
+                    .foregroundStyle(ZebraTheme.secondaryText)
             }
         }
     }
@@ -503,11 +503,11 @@ struct OverlayEditorView: View {
             if editorMode == .rehydrate {
                 Text("\(rehydrateTokenCount) token\(rehydrateTokenCount == 1 ? "" : "s") replaced")
                     .font(.caption)
-                    .foregroundStyle(GhostTheme.tertiaryText)
+                    .foregroundStyle(ZebraTheme.tertiaryText)
             } else {
                 Text("\(originalText.count) chars · \(originalText.split(separator: " ").count) words")
                     .font(.caption)
-                    .foregroundStyle(GhostTheme.tertiaryText)
+                    .foregroundStyle(ZebraTheme.tertiaryText)
             }
 
             Spacer()
@@ -529,13 +529,13 @@ struct OverlayEditorView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(copied ? GhostTheme.green : GhostTheme.purple)
+                .tint(copied ? ZebraTheme.green : ZebraTheme.purple)
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(rehydrateOutput.isEmpty)
                 .animation(.easeInOut(duration: 0.2), value: copied)
             } else {
                 Button {
-                    let output = detector.ghostedText
+                    let output = detector.redactedText
                     onApply(output)
                     copied = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
@@ -546,7 +546,7 @@ struct OverlayEditorView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(copied ? GhostTheme.green : GhostTheme.purple)
+                .tint(copied ? ZebraTheme.green : ZebraTheme.purple)
                 .keyboardShortcut(.return, modifiers: .command)
                 .animation(.easeInOut(duration: 0.2), value: copied)
             }
@@ -597,34 +597,34 @@ struct PIICategoryRow: View {
         Button(action: onToggle) {
             HStack(spacing: 8) {
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(GhostTheme.highlightColor(for: type))
+                    .fill(ZebraTheme.highlightColor(for: type))
                     .frame(width: 16, height: 16)
                     .overlay(
                         RoundedRectangle(cornerRadius: 3)
-                            .strokeBorder(GhostTheme.legendColor(for: type), lineWidth: 1)
+                            .strokeBorder(ZebraTheme.legendColor(for: type), lineWidth: 1)
                     )
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("\(count) \(type.rawValue)\(count > 1 ? "s" : "")")
                         .font(.callout.weight(.medium))
-                        .foregroundStyle(GhostTheme.primaryText)
+                        .foregroundStyle(ZebraTheme.primaryText)
 
-                    Text(allMasked ? "ghosted" : "\(maskedCount)/\(count) ghosted")
+                    Text(allMasked ? "redacted" : "\(maskedCount)/\(count) redacted")
                         .font(.caption2)
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
                 }
 
                 Spacer()
 
                 Image(systemName: allMasked ? "eye.slash.fill" : "eye.fill")
                     .font(.caption)
-                    .foregroundStyle(allMasked ? GhostTheme.purple : GhostTheme.tertiaryText)
+                    .foregroundStyle(allMasked ? ZebraTheme.purple : ZebraTheme.tertiaryText)
             }
             .padding(.vertical, 4)
             .padding(.horizontal, 8)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovered ? GhostTheme.highlightColor(for: type).opacity(0.3) : Color.clear)
+                    .fill(isHovered ? ZebraTheme.highlightColor(for: type).opacity(0.3) : Color.clear)
             )
         }
         .buttonStyle(.plain)
@@ -636,14 +636,14 @@ struct PIICategoryRow: View {
 struct RehydratedTextView: NSViewRepresentable {
     let originalText: String
     let rehydratedText: String
-    let mappings: [GhostMapping]
+    let mappings: [TokenMapping]
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
         let textView = scrollView.documentView as! NSTextView
         textView.isEditable = false
         textView.isSelectable = true
-        textView.font = GhostTheme.editorFont
+        textView.font = ZebraTheme.editorFont
         textView.textContainerInset = NSSize(width: 12, height: 12)
         textView.backgroundColor = .textBackgroundColor
         applyStyledText(to: textView)
@@ -659,7 +659,7 @@ struct RehydratedTextView: NSViewRepresentable {
         let attributed = NSMutableAttributedString(
             string: rehydratedText,
             attributes: [
-                .font: GhostTheme.editorFont,
+                .font: ZebraTheme.editorFont,
                 .foregroundColor: NSColor.labelColor,
             ]
         )

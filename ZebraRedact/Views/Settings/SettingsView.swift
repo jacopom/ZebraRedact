@@ -8,29 +8,18 @@ struct SettingsView: View {
                     Label("General", systemImage: "gearshape")
                 }
 
-            IntelligenceSettingsTab()
-                .tabItem {
-                    Label("Intelligence", systemImage: "cpu")
-                }
-
-            PrivacySettingsTab()
-                .tabItem {
-                    Label("Privacy", systemImage: "eye.trianglebadge.exclamationmark")
-                }
-
             AboutSettingsTab()
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 560, height: 480)
+        .frame(width: 480, height: 340)
     }
 }
 
 // MARK: - General
 
 struct GeneralSettingsTab: View {
-    @AppStorage(ZebraRedactConstants.StorageKeys.onboardingComplete) private var onboardingComplete = true
     @AppStorage(ZebraRedactConstants.StorageKeys.showInDock) private var showInDock = true
 
     var body: some View {
@@ -41,7 +30,7 @@ struct GeneralSettingsTab: View {
                         Text("Show in Dock")
                         Text("Toggle between Dock icon and menu bar only")
                             .font(.caption)
-                            .foregroundStyle(GhostTheme.secondaryText)
+                            .foregroundStyle(ZebraTheme.secondaryText)
                     }
                 }
                 .onChange(of: showInDock) { _, newValue in
@@ -55,17 +44,6 @@ struct GeneralSettingsTab: View {
                 LabeledContent("Dismiss", value: "Escape")
             }
 
-            Section("Onboarding") {
-                HStack {
-                    Text("Show welcome screen on next launch")
-                    Spacer()
-                    Button("Reset") {
-                        onboardingComplete = false
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-            }
         }
         .formStyle(.grouped)
         .padding(.horizontal)
@@ -86,7 +64,7 @@ struct IntelligenceSettingsTab: View {
                         .font(.headline)
                     Text("Choose how sensitive data is replaced")
                         .font(.caption)
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
                 }
                 .padding(.vertical, 4)
 
@@ -95,9 +73,9 @@ struct IntelligenceSettingsTab: View {
                         Text("Semantic Abstraction")
                         Text(useSemanticReplacement ?
                             "Replaces with realistic fake data (e.g., john@acme.com → alice.smith@example.com)" :
-                            "Replaces with opaque tokens (e.g., john@acme.com → [GHOST_A1B2])")
+                            "Replaces with opaque tokens (e.g., john@acme.com → [EMAIL_A1B2])")
                             .font(.caption)
-                            .foregroundStyle(GhostTheme.secondaryText)
+                            .foregroundStyle(ZebraTheme.secondaryText)
                     }
                 }
                 .toggleStyle(.switch)
@@ -105,10 +83,10 @@ struct IntelligenceSettingsTab: View {
                 if useSemanticReplacement {
                     HStack(spacing: 6) {
                         Image(systemName: "info.circle.fill")
-                            .foregroundStyle(GhostTheme.purple.opacity(0.6))
+                            .foregroundStyle(ZebraTheme.purple.opacity(0.6))
                         Text("Semantic mode preserves context, letting LLMs work with abstracted but realistic data.")
                             .font(.caption2)
-                            .foregroundStyle(GhostTheme.secondaryText)
+                            .foregroundStyle(ZebraTheme.secondaryText)
                     }
                     .padding(.vertical, 4)
                 }
@@ -121,7 +99,7 @@ struct IntelligenceSettingsTab: View {
                         .font(.headline)
                     Text("Choose how ZebraRedact identifies sensitive information")
                         .font(.caption)
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
                 }
                 .padding(.vertical, 4)
 
@@ -130,7 +108,7 @@ struct IntelligenceSettingsTab: View {
                         Image(systemName: "text.magnifyingglass")
                         VStack(alignment: .leading) {
                             Text("Regex (Fast)")
-                            Text("Pattern-based detection, instant").font(.caption2).foregroundStyle(GhostTheme.secondaryText)
+                            Text("Pattern-based detection, instant").font(.caption2).foregroundStyle(ZebraTheme.secondaryText)
                         }
                     }
                     .tag("regex")
@@ -139,7 +117,7 @@ struct IntelligenceSettingsTab: View {
                         Image(systemName: "brain")
                         VStack(alignment: .leading) {
                             Text("NLTagger (Smart)")
-                            Text("Apple's semantic detection").font(.caption2).foregroundStyle(GhostTheme.secondaryText)
+                            Text("Apple's semantic detection").font(.caption2).foregroundStyle(ZebraTheme.secondaryText)
                         }
                     }
                     .tag("nltagger")
@@ -148,7 +126,7 @@ struct IntelligenceSettingsTab: View {
                         Image(systemName: "cpu.fill")
                         VStack(alignment: .leading) {
                             Text("MLX (Advanced)")
-                            Text("Local AI models (coming soon)").font(.caption2).foregroundStyle(GhostTheme.secondaryText)
+                            Text("Local AI models (coming soon)").font(.caption2).foregroundStyle(ZebraTheme.secondaryText)
                         }
                     }
                     .tag("mlx")
@@ -159,15 +137,15 @@ struct IntelligenceSettingsTab: View {
             Section("Active Engine") {
                 HStack {
                     Image(systemName: detectionEngine == "regex" ? "text.magnifyingglass" : detectionEngine == "nltagger" ? "brain" : "cpu.fill")
-                        .foregroundStyle(GhostTheme.purple)
+                        .foregroundStyle(ZebraTheme.purple)
                     Text(detectionEngine == "regex" ? "Regex-based (local, instant)" : detectionEngine == "nltagger" ? "NLTagger (semantic)" : "MLX (advanced)")
                     Spacer()
                     Text("Active")
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(GhostTheme.green.opacity(0.2))
-                        .foregroundStyle(GhostTheme.green)
+                        .background(ZebraTheme.green.opacity(0.2))
+                        .foregroundStyle(ZebraTheme.green)
                         .clipShape(Capsule())
                 }
             }
@@ -178,7 +156,7 @@ struct IntelligenceSettingsTab: View {
                         .font(.headline)
                     Text("Download and manage MLX models for advanced detection")
                         .font(.caption)
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
 
                     Button {
                         // TODO: Show model management
@@ -222,13 +200,13 @@ struct PrivacySettingsTab: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Stored Tokens")
-                        Text("\(GhostMappingStore.shared.count) [GHOST_X] mappings")
+                        Text("\(TokenMappingStore.shared.count) token mappings")
                             .font(.caption)
-                            .foregroundStyle(GhostTheme.secondaryText)
+                            .foregroundStyle(ZebraTheme.secondaryText)
                     }
                     Spacer()
                     Button("Clear All") {
-                        GhostMappingStore.shared.clearAll()
+                        TokenMappingStore.shared.clearAll()
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -244,32 +222,19 @@ struct PrivacySettingsTab: View {
 
 struct AboutSettingsTab: View {
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Spacer()
-
-            Image(systemName: "theatermasks.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(GhostTheme.purple)
 
             Text("ZebraRedact")
                 .font(.title.bold())
 
             Text("Version 1.0.0")
                 .font(.caption)
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
 
             Text("Local PII masking for LLM prompts.\nYour data never leaves your Mac.")
                 .multilineTextAlignment(.center)
-                .foregroundStyle(GhostTheme.secondaryText)
-
-            Spacer()
-
-            HStack(spacing: 20) {
-                Link("Privacy Policy", destination: URL(string: "https://ghostclip.app/privacy")!)
-                Text("·").foregroundStyle(GhostTheme.secondaryText)
-                Link("GitHub", destination: URL(string: "https://github.com/ghostclip")!)
-            }
-            .font(.caption)
+                .foregroundStyle(ZebraTheme.secondaryText)
 
             Spacer()
         }

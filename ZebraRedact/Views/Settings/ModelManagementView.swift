@@ -32,7 +32,7 @@ struct ModelManagementView: View {
                 if let result = testResult {
                     Text(result)
                         .font(.caption)
-                        .foregroundStyle(GhostTheme.green)
+                        .foregroundStyle(ZebraTheme.green)
                 }
             }
         }
@@ -66,14 +66,14 @@ struct ModelManagementView: View {
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 1)
-                            .background(GhostTheme.purple.opacity(0.15))
-                            .foregroundStyle(GhostTheme.purple)
+                            .background(ZebraTheme.purple.opacity(0.15))
+                            .foregroundStyle(ZebraTheme.purple)
                             .clipShape(Capsule())
                     }
                 }
                 Text("\(model.sizeFormatted) · Accuracy: \(model.accuracy)%")
                     .font(.caption)
-                    .foregroundStyle(GhostTheme.secondaryText)
+                    .foregroundStyle(ZebraTheme.secondaryText)
             }
 
             Spacer()
@@ -84,7 +84,7 @@ struct ModelManagementView: View {
                     Task { await modelManager.installModel(model) }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(GhostTheme.purple)
+                .tint(ZebraTheme.purple)
                 .controlSize(.small)
 
             case .downloading(let progress):
@@ -93,7 +93,7 @@ struct ModelManagementView: View {
                         .frame(width: 80)
                     Text("\(Int(progress * 100))%")
                         .font(.caption2)
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
                 }
 
             case .installing:
@@ -109,21 +109,21 @@ struct ModelManagementView: View {
                     } else {
                         Text("Active")
                             .font(.caption.bold())
-                            .foregroundStyle(GhostTheme.green)
+                            .foregroundStyle(ZebraTheme.green)
                     }
                     Button {
                         modelToUninstall = model
                         showUninstallAlert = true
                     } label: {
                         Image(systemName: "trash")
-                            .foregroundStyle(GhostTheme.red)
+                            .foregroundStyle(ZebraTheme.red)
                     }
                     .buttonStyle(.borderless)
                 }
 
             case .failed(let msg):
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(msg).font(.caption2).foregroundStyle(GhostTheme.red).lineLimit(1)
+                    Text(msg).font(.caption2).foregroundStyle(ZebraTheme.red).lineLimit(1)
                     Button("Retry") { Task { await modelManager.installModel(model) } }
                         .controlSize(.small)
                 }

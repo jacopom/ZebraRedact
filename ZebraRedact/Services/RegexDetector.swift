@@ -11,12 +11,20 @@ final class RegexDetector {
         let defs: [(PIIType, String)] = [
             // Email
             (.email, #"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"#),
-            // Phone (international & US formats)
-            (.phone, #"(?:\+?\d{1,3}[\s\-]?)?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}"#),
+            // Phone — US/Canada: (415) 555-0192, 415-555-0192, +1 415.555.0192
+            // Requires separator between all groups (excludes EINs like 84-3210987,
+            // account numbers like 000482991703, and ABA routing like 021000021)
+            (.phone, #"\b(?:\+?1[\s\-\.]?)?(?:\(\d{3}\)|\d{3})[\s\-\.]\d{3}[\s\-\.]\d{4}\b(?![\-\d])"#),
+            // Phone — International with explicit + prefix: +44 20 7946 0958, +33 6 12 34 56 78
+            (.phone, #"\+[1-9]\d{0,2}[\s\-]\d{1,4}(?:[\s\-]\d{2,4}){1,4}\b"#),
             // Credit Card (Visa, MC, Amex, Discover)
             (.creditCard, #"\b(?:4\d{3}|5[1-5]\d{2}|3[47]\d{2}|6(?:011|5\d{2}))[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b"#),
-            // SSN
-            (.ssn, #"\b\d{3}[\-\s]?\d{2}[\-\s]?\d{4}\b"#),
+            // SSN: NNN-NN-NNNN (dash-separated, requires dashes, not optional).
+            // Negative lookahead (?![-\d]) prevents substring matches inside longer
+            // hyphenated numbers like 808-123456-838.
+            (.ssn, #"\b\d{3}-\d{2}-\d{4}\b(?![-\d])"#),
+            // SSN with spaces: NNN NN NNNN
+            (.ssn, #"\b\d{3} \d{2} \d{4}\b(?! \d)"#),
             // IPv4
             (.ipAddress, #"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b"#),
             // API Keys (common patterns: sk-, pk_, AKIA, ghp_, etc.)
@@ -67,7 +75,7 @@ final class RegexDetector {
         var result = text
         // Process in reverse order to preserve indices
         for item in items.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) where item.isMasked {
-            result.replaceSubrange(item.range, with: item.ghostToken)
+            result.replaceSubrange(item.range, with: item.token)
         }
         return result
     }

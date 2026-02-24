@@ -92,7 +92,7 @@ struct ClickableTokenTextView: NSViewRepresentable {
 
         for item in items {
             // Search for the text that was actually placed in the output for this item
-            let searchText = appliedTexts[item.id] ?? item.ghostToken
+            let searchText = appliedTexts[item.id] ?? item.token
             var searchRange = NSRange(location: 0, length: (text as NSString).length)
 
             while searchRange.location < (text as NSString).length {

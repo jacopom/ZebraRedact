@@ -80,10 +80,13 @@ final class SemanticRedactorImpl: SemanticRedactor {
         // For a real implementation this would use NLP chunking or sliding window
         // Here we check a curated list of patterns that benefit from semantic context
         let candidatePatterns: [NSRegularExpression] = [
-            // "top N <adj> customers/clients/accounts"
-            try! NSRegularExpression(pattern: #"\btop\s+\d+\s+\w+\s+(?:customers?|clients?|accounts?|enterprises?)\b"#, options: .caseInsensitive),
-            // "<region> customers/clients"
-            try! NSRegularExpression(pattern: #"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s+(?:customers?|clients?)\b"#),
+            // "(our/the) top N <adj> customers/clients/accounts"
+            try! NSRegularExpression(pattern: #"\b(?:our\s+|the\s+)?top\s+\d+\s+\w+\s+(?:customers?|clients?|accounts?|enterprises?)\b"#, options: .caseInsensitive),
+            // Title-case or ALL-CAPS region + customers/clients: "European customers", "LATAM clients"
+            try! NSRegularExpression(pattern: #"\b[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?\s+(?:customers?|clients?)\b"#),
+            // Infrastructure/environment terms: "(our) staging environment", "production"
+            try! NSRegularExpression(pattern: #"\b(?:our\s+|the\s+)?(?:staging|development|test)\s+environment\b"#, options: .caseInsensitive),
+            try! NSRegularExpression(pattern: #"\bproduction\b"#),
         ]
 
         var candidates: [(range: Range<String.Index>, text: String)] = []
@@ -112,9 +115,13 @@ final class SemanticRedactorImpl: SemanticRedactor {
                 task: task
             )
             guard classification.isSensitive,
-                  let category = classification.category,
-                  config.enabledCategories.contains(category)
+                  let category = classification.category
             else { continue }
+            // Custom categories are LLM-proposed and always allowed;
+            // standard categories are filtered by enabledCategories.
+            let isCustom: Bool
+            if case .custom = category { isCustom = true } else { isCustom = false }
+            guard isCustom || config.enabledCategories.contains(category) else { continue }
 
             customerGroupCount += 1
             let placeholder = "[\(category.placeholderPrefix)_\(customerGroupCount)]"

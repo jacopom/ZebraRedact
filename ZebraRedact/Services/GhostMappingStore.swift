@@ -2,17 +2,17 @@ import Foundation
 
 /// Persists ghost token → original value mappings so LLM responses can be rehydrated.
 /// Stores in memory and optionally to disk for session persistence.
-final class GhostMappingStore {
-    static let shared = GhostMappingStore()
+final class TokenMappingStore {
+    static let shared = TokenMappingStore()
 
-    /// Token → original value, e.g. "[GHOST_A1B2]" → "john@example.com"
-    private(set) var mappings: [String: GhostMapping] = [:]
+    /// Token → original value, e.g. "[EMAIL_A1B2]" → "john@example.com"
+    private(set) var mappings: [String: TokenMapping] = [:]
 
     private let storageURL: URL = {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let dir = support.appendingPathComponent("ZebraRedact", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("ghost_mappings.json")
+        return dir.appendingPathComponent("token_mappings.json")
     }()
 
     private init() {
@@ -22,27 +22,27 @@ final class GhostMappingStore {
     // MARK: - Store
 
     func store(token: String, original: String, type: PIIType) {
-        let mapping = GhostMapping(token: token, originalValue: original, type: type, createdAt: Date())
+        let mapping = TokenMapping(token: token, originalValue: original, type: type, createdAt: Date())
         mappings[token] = mapping
         saveToDisk()
     }
 
     func storeBatch(items: [PIIItem]) {
         for item in items where item.isMasked {
-            let mapping = GhostMapping(
-                token: item.ghostToken,
+            let mapping = TokenMapping(
+                token: item.token,
                 originalValue: item.originalText,
                 type: item.type,
                 createdAt: Date()
             )
-            mappings[item.ghostToken] = mapping
+            mappings[item.token] = mapping
         }
         saveToDisk()
     }
 
     // MARK: - Rehydrate
 
-    /// Replaces all [GHOST_XXXX] tokens in the text with their original values.
+    /// Replaces all [TOKEN] tokens in the text with their original values.
     func rehydrate(_ text: String) -> String {
         var result = text
         for (token, mapping) in mappings {
@@ -52,7 +52,7 @@ final class GhostMappingStore {
     }
 
     /// Returns the tokens found in the given text along with their mappings.
-    func findTokens(in text: String) -> [GhostMapping] {
+    func findTokens(in text: String) -> [TokenMapping] {
         mappings.values.filter { text.contains($0.token) }
             .sorted { $0.createdAt > $1.createdAt }
     }
@@ -85,7 +85,7 @@ final class GhostMappingStore {
 
     private func loadFromDisk() {
         guard let data = try? Data(contentsOf: storageURL),
-              let entries = try? JSONDecoder().decode([GhostMapping].self, from: data) else { return }
+              let entries = try? JSONDecoder().decode([TokenMapping].self, from: data) else { return }
         for entry in entries {
             mappings[entry.token] = entry
         }
@@ -94,7 +94,7 @@ final class GhostMappingStore {
 
 // MARK: - Data Model
 
-struct GhostMapping: Codable, Identifiable {
+struct TokenMapping: Codable, Identifiable {
     let token: String
     let originalValue: String
     let type: PIIType

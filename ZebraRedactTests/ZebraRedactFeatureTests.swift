@@ -173,8 +173,8 @@ final class PIIDetectorTests: XCTestCase {
 
         XCTAssertFalse(detector.detectedItems.isEmpty)
         XCTAssertTrue(detector.detectedItems.contains { $0.type == .email })
-        XCTAssertFalse(detector.ghostedText.contains("alice.jones@company.com"),
-            "Original email must not appear in ghosted output")
+        XCTAssertFalse(detector.redactedText.contains("alice.jones@company.com"),
+            "Original email must not appear in redacted output")
     }
 
     func testCleanTextProducesNoDetections() async {
@@ -185,8 +185,8 @@ final class PIIDetectorTests: XCTestCase {
 
         XCTAssertTrue(detector.detectedItems.isEmpty,
             "Clean prose must not trigger PII detection")
-        XCTAssertEqual(detector.ghostedText, text,
-            "Ghosted text must equal input when nothing is redacted")
+        XCTAssertEqual(detector.redactedText, text,
+            "Redacted text must equal input when nothing is redacted")
     }
 
     func testMultiplePIITypesDetectedInOneScan() async {
@@ -207,7 +207,7 @@ final class PIIDetectorTests: XCTestCase {
         detector.scan(text: "Send invoice to carol@payroll.com ASAP.")
         await waitForProcessing(detector)
 
-        XCTAssertTrue(detector.ghostedText.contains("[EMAIL_"),
+        XCTAssertTrue(detector.redactedText.contains("[EMAIL_"),
             "Token mode must produce [EMAIL_XXXX] style replacement")
     }
 
@@ -217,9 +217,9 @@ final class PIIDetectorTests: XCTestCase {
         detector.scan(text: "Send invoice to carol@payroll.com ASAP.")
         await waitForProcessing(detector)
 
-        XCTAssertFalse(detector.ghostedText.contains("carol@payroll.com"),
+        XCTAssertFalse(detector.redactedText.contains("carol@payroll.com"),
             "Original email must not appear in semantic output")
-        XCTAssertFalse(detector.ghostedText.contains("[EMAIL_"),
+        XCTAssertFalse(detector.redactedText.contains("[EMAIL_"),
             "Semantic mode must not produce token-style output")
     }
 
@@ -245,22 +245,22 @@ final class PIIDetectorTests: XCTestCase {
             "remaskCurrentItems must not add or remove detected items")
     }
 
-    func testModeSwitchChangesGhostedTextFormat() async {
+    func testModeSwitchChangesRedactedTextFormat() async {
         let detector = PIIDetector()
         let text = "Reply to dan@example.org when ready."
 
         detector.redactionMode = .token
         detector.scan(text: text)
         await waitForProcessing(detector)
-        let tokenOutput = detector.ghostedText
+        let tokenOutput = detector.redactedText
 
         detector.redactionMode = .semantic
         detector.remaskCurrentItems(originalText: text)
         await waitForProcessing(detector)
-        let semanticOutput = detector.ghostedText
+        let semanticOutput = detector.redactedText
 
         XCTAssertNotEqual(tokenOutput, semanticOutput,
-            "Switching mode must change the ghosted text")
+            "Switching mode must change the redacted text")
         XCTAssertTrue(tokenOutput.contains("[EMAIL_"),
             "Token output must contain [EMAIL_XXXX] marker")
         XCTAssertFalse(semanticOutput.contains("[EMAIL_"),
@@ -313,15 +313,15 @@ final class PIIDetectorTests: XCTestCase {
         }
     }
 
-    func testAppliedReplacementTokenAppearsInGhostedText() async {
+    func testAppliedReplacementTokenAppearsInRedactedText() async {
         let detector = PIIDetector()
         detector.redactionMode = .token
         detector.scan(text: "Ping hugo@devteam.com for access.")
         await waitForProcessing(detector)
 
         for (_, replacement) in detector.appliedReplacements {
-            XCTAssertTrue(detector.ghostedText.contains(replacement),
-                "Applied replacement '\(replacement)' must appear in ghostedText")
+            XCTAssertTrue(detector.redactedText.contains(replacement),
+                "Applied replacement '\(replacement)' must appear in redactedText")
         }
     }
 

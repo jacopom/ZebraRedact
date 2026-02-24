@@ -13,9 +13,9 @@ struct VaultView: View {
             // Header
             HStack {
                 Image(systemName: "lock.shield.fill")
-                    .foregroundStyle(GhostTheme.purple)
+                    .foregroundStyle(ZebraTheme.purple)
                 Text("Vault (Pro) — PIN Protected")
-                    .font(GhostTheme.headlineFont)
+                    .font(ZebraTheme.headlineFont)
             }
 
             if !vault.isUnlocked {
@@ -23,7 +23,7 @@ struct VaultView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 40))
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
 
                     Text("Unlock Vault")
                         .font(.headline)
@@ -32,7 +32,7 @@ struct VaultView: View {
                         Task { await vault.authenticate() }
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(GhostTheme.purple)
+                    .tint(ZebraTheme.purple)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 30)
@@ -40,12 +40,12 @@ struct VaultView: View {
                 // Entries List
                 Text("Your Secrets")
                     .font(.subheadline.bold())
-                    .foregroundStyle(GhostTheme.secondaryText)
+                    .foregroundStyle(ZebraTheme.secondaryText)
 
                 if vault.entries.isEmpty {
                     Text("No vault entries yet. Add your first secret below.")
                         .font(.caption)
-                        .foregroundStyle(GhostTheme.secondaryText)
+                        .foregroundStyle(ZebraTheme.secondaryText)
                         .italic()
                 } else {
                     ForEach(vault.entries) { entry in
@@ -76,7 +76,7 @@ struct VaultView: View {
                             newValue = ""
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(GhostTheme.purple)
+                        .tint(ZebraTheme.purple)
                         .disabled(newLabel.isEmpty || newValue.isEmpty)
                     }
                 }
@@ -93,7 +93,7 @@ struct VaultView: View {
             if let error = vault.error {
                 Text(error)
                     .font(.caption)
-                    .foregroundStyle(GhostTheme.red)
+                    .foregroundStyle(ZebraTheme.red)
             }
         }
         .padding()
@@ -107,9 +107,9 @@ struct VaultView: View {
             VStack(alignment: .leading) {
                 Text(entry.label)
                     .font(.body.bold())
-                Text(entry.ghostToken)
+                Text(entry.token)
                     .font(.caption.monospaced())
-                    .foregroundStyle(GhostTheme.purple)
+                    .foregroundStyle(ZebraTheme.purple)
             }
 
             Spacer()
@@ -117,7 +117,7 @@ struct VaultView: View {
             if revealedEntryID == entry.id, let value = revealedValue {
                 Text(value)
                     .font(.caption.monospaced())
-                    .foregroundStyle(GhostTheme.secondaryText)
+                    .foregroundStyle(ZebraTheme.secondaryText)
                     .textSelection(.enabled)
             }
 
@@ -141,7 +141,7 @@ struct VaultView: View {
                 vault.deleteEntry(entry)
             } label: {
                 Image(systemName: "trash")
-                    .foregroundStyle(GhostTheme.red)
+                    .foregroundStyle(ZebraTheme.red)
             }
             .buttonStyle(.borderless)
         }

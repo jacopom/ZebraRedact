@@ -67,14 +67,14 @@ final class MockLLMClient: LocalLLMClient {
     static var test1Client: MockLLMClient {
         MockLLMClient(
             classifications: [
-                "top 10 enterprise customers": SemanticClassificationResult(
+                "our top 10 enterprise customers": SemanticClassificationResult(
                     isSensitive: true,
                     category: .customerGroup,
                     rationale: "Customer group reveals business scale and segment"
                 ),
             ],
             replacements: [
-                "top 10 enterprise customers": "a set of key enterprise customers",
+                "our top 10 enterprise customers": "a set of key enterprise customers",
             ]
         )
     }
@@ -99,6 +99,11 @@ final class MockLLMClient: LocalLLMClient {
     static var test3Client: MockLLMClient {
         MockLLMClient(
             classifications: [
+                "our staging environment": SemanticClassificationResult(
+                    isSensitive: true,
+                    category: .custom("environment"),
+                    rationale: "Internal infrastructure reference"
+                ),
                 "staging environment": SemanticClassificationResult(
                     isSensitive: true,
                     category: .custom("environment"),
@@ -111,6 +116,7 @@ final class MockLLMClient: LocalLLMClient {
                 ),
             ],
             replacements: [
+                "our staging environment": "a non-production environment",
                 "staging environment": "a non-production environment",
                 "production": "the live system",
             ]

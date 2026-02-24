@@ -27,7 +27,7 @@ struct OnboardingView: View {
                 HStack(spacing: 8) {
                     ForEach(0..<3) { idx in
                         Circle()
-                            .fill(idx == currentPage ? GhostTheme.purple : Color.gray.opacity(0.3))
+                            .fill(idx == currentPage ? ZebraTheme.purple : Color.gray.opacity(0.3))
                             .frame(width: 8, height: 8)
                     }
                 }
@@ -39,22 +39,22 @@ struct OnboardingView: View {
                         withAnimation { currentPage += 1 }
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(GhostTheme.purple)
+                    .tint(ZebraTheme.purple)
                     .controlSize(.large)
                 } else {
-                    Button("Start Ghosting") {
+                    Button("Get Started") {
                         onboardingComplete = true
                         NSApp.keyWindow?.close()
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(GhostTheme.purple)
+                    .tint(ZebraTheme.purple)
                     .controlSize(.large)
                 }
             }
             .padding(20)
         }
         .frame(width: 580, height: 460)
-        .background(GhostTheme.panelBackground)
+        .background(ZebraTheme.panelBackground)
     }
 
     // MARK: - Slide 1: Welcome
@@ -63,16 +63,17 @@ struct OnboardingView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            Image(systemName: "theatermasks.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(GhostTheme.purple)
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 80, height: 80)
 
             Text("Welcome to ZebraRedact")
                 .font(.system(.title, design: .rounded, weight: .bold))
 
             Text("Hide personal data before pasting into AI.")
                 .font(.title3)
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
 
             VStack(alignment: .leading, spacing: 8) {
                 featureRow(icon: "keyboard", text: "Press ⌥⌘G from anywhere to summon")
@@ -98,7 +99,7 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("BEFORE")
                         .font(.caption.bold())
-                        .foregroundStyle(GhostTheme.red)
+                        .foregroundStyle(ZebraTheme.red)
                         .tracking(1)
 
                     Text(demoAttributedBefore)
@@ -115,7 +116,7 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("AFTER")
                         .font(.caption.bold())
-                        .foregroundStyle(GhostTheme.green)
+                        .foregroundStyle(ZebraTheme.green)
                         .tracking(1)
 
                     Text(demoAfterText)
@@ -132,7 +133,7 @@ struct OnboardingView: View {
 
             Text("Emails, phones, and API keys are replaced with safe tokens.")
                 .font(.callout)
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
                 .multilineTextAlignment(.center)
         }
         .padding(24)
@@ -146,14 +147,14 @@ struct OnboardingView: View {
 
             Image(systemName: "checkmark.shield.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(GhostTheme.green)
+                .foregroundStyle(ZebraTheme.green)
 
             Text("You're all set!")
                 .font(.system(.title, design: .rounded, weight: .bold))
 
-            Text("Press ⌥⌘G anytime to ghost your clipboard.")
+            Text("Press ⌥⌘G anytime to open ZebraRedact.")
                 .font(.title3)
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
 
             HStack(spacing: 24) {
                 KeyboardShortcutBadge(keys: ["⌥", "⌘", "G"], label: "Summon")
@@ -173,7 +174,7 @@ struct OnboardingView: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.body)
-                .foregroundStyle(GhostTheme.purple)
+                .foregroundStyle(ZebraTheme.purple)
                 .frame(width: 24)
             Text(text)
                 .font(.body)
@@ -196,7 +197,7 @@ struct OnboardingView: View {
     }
 
     private var demoAfterText: String {
-        "Contact [GHOST_A1B2]\nor call [GHOST_C3D4]\nAPI: [GHOST_E5F6]"
+        "Contact [EMAIL_A1B2]\nor call [PHONE_C3D4]\nAPI: [APIKEY_E5F6]"
     }
 }
 
@@ -220,7 +221,7 @@ struct KeyboardShortcutBadge: View {
             }
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(GhostTheme.secondaryText)
+                .foregroundStyle(ZebraTheme.secondaryText)
         }
     }
 }

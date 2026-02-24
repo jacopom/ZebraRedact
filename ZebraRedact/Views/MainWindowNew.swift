@@ -149,9 +149,9 @@ struct MainWindowNew: View {
                 title: "Redacted Output",
                 subtitle: !detector.detectedItems.isEmpty ? "\(detector.detectedItems.count) items • \(detector.privacyScore)% privacy" : nil,
                 trailing: {
-                    if !detector.ghostedText.isEmpty {
+                    if !detector.redactedText.isEmpty {
                         Button {
-                            copyToClipboard(detector.ghostedText)
+                            copyToClipboard(detector.redactedText)
                         } label: {
                             Label("Copy", systemImage: "doc.on.clipboard")
                                 .font(DesignSystem.Typography.bodyEmphasis)
@@ -263,7 +263,7 @@ struct MainWindowNew: View {
                         selectedToken = item
                         showAlternativesPopover = true
                     } label: {
-                        Text(item.ghostToken)
+                        Text(item.token)
                             .font(DesignSystem.Typography.monoSmall)
                             .fontWeight(.medium)
                             .foregroundColor(DesignSystem.Colors.primary)
@@ -286,12 +286,12 @@ struct MainWindowNew: View {
     // Parse ghosted text into clickable tokens and plain text
     private func parseTokenizedText() -> [TextComponent] {
         var components: [TextComponent] = []
-        var remainingText = detector.ghostedText
+        var remainingText = detector.redactedText
 
         // Create a map of tokens to items for quick lookup
         var tokenMap: [String: PIIItem] = [:]
         for item in detector.detectedItems {
-            tokenMap[item.ghostToken] = item
+            tokenMap[item.token] = item
         }
 
         // Split by tokens

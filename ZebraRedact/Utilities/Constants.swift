@@ -2,7 +2,7 @@ import Foundation
 
 enum ZebraRedactConstants {
     static let appName = "ZebraRedact"
-    static let bundleIdentifier = "com.ghostclip.app"
+    static let bundleIdentifier = "com.zebraredact.app"
 
     // MARK: - Storage Keys
     enum StorageKeys {
@@ -18,7 +18,7 @@ enum ZebraRedactConstants {
 
     // MARK: - Hotkeys
     enum Hotkeys {
-        static let ghostTrigger = "⌥⌘G"
+        static let hotkey = "⌥⌘G"
         static let applyShortcut = "⌘⏎"
         static let cancelShortcut = "⎋"
     }
@@ -38,11 +38,11 @@ enum ZebraRedactConstants {
                 .appendingPathComponent("ZebraRedact/MLX", isDirectory: true)
         }
 
-        static var vaultKeychainService: String { "com.ghostclip.vault" }
+        static var vaultKeychainService: String { "com.zebraredact.vault" }
     }
 
     // MARK: - IAP
     enum IAP {
-        static let proProductID = "com.ghostclip.pro"
+        static let proProductID = "com.zebraredact.pro"
     }
 }

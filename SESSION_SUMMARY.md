@@ -70,8 +70,8 @@
 - None known
 
 ### P1 — Polish
-- Preserve existing tokens when user edits input text (re-scan loses manual tags)
-- Keyboard shortcut for "Copy Redacted" (e.g. ⌘⇧C)
+- ✅ Preserve existing tokens when user edits input text — `scan()` now re-anchors manual tags
+- ✅ Keyboard shortcut ⌘⇧C for "Copy Redacted"
 
 ### P2 — Future
 - Foundation Models (`FoundationModelEngine`) — live once macOS 26 ships

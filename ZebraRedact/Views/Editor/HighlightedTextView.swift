@@ -23,7 +23,7 @@ struct HighlightedTextView: NSViewRepresentable {
         textView.allowsUndo = true
         textView.isRichText = false
         textView.usesFindPanel = true
-        textView.font = GhostTheme.editorFont
+        textView.font = ZebraTheme.editorFont
         textView.textContainerInset = NSSize(width: 12, height: 12)
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
@@ -56,7 +56,7 @@ struct HighlightedTextView: NSViewRepresentable {
         // Reset to base style
         textStorage.beginEditing()
         textStorage.removeAttribute(.backgroundColor, range: fullRange)
-        textStorage.addAttribute(.font, value: GhostTheme.editorFont, range: fullRange)
+        textStorage.addAttribute(.font, value: ZebraTheme.editorFont, range: fullRange)
         textStorage.addAttribute(.foregroundColor, value: NSColor.labelColor, range: fullRange)
 
         // Apply highlights for each PII item
@@ -65,7 +65,7 @@ struct HighlightedTextView: NSViewRepresentable {
             guard nsRange.location != NSNotFound,
                   nsRange.location + nsRange.length <= textStorage.length else { continue }
 
-            let bgColor = GhostTheme.nsHighlightColor(for: item.type)
+            let bgColor = ZebraTheme.nsHighlightColor(for: item.type)
             textStorage.addAttribute(.backgroundColor, value: bgColor, range: nsRange)
 
             // Add dotted underline for manual tags
@@ -131,7 +131,7 @@ struct HighlightedTextView: NSViewRepresentable {
 }
 
 /// A read-only text view that shows the ghosted output with tokens styled.
-struct GhostedPreviewView: NSViewRepresentable {
+struct RedactedPreviewView: NSViewRepresentable {
     let text: String
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -140,7 +140,7 @@ struct GhostedPreviewView: NSViewRepresentable {
 
         textView.isEditable = false
         textView.isSelectable = true
-        textView.font = GhostTheme.editorFont
+        textView.font = ZebraTheme.editorFont
         textView.textContainerInset = NSSize(width: 12, height: 12)
         textView.backgroundColor = .textBackgroundColor
 
@@ -157,20 +157,20 @@ struct GhostedPreviewView: NSViewRepresentable {
         let attributed = NSMutableAttributedString(
             string: text,
             attributes: [
-                .font: GhostTheme.editorFont,
+                .font: ZebraTheme.editorFont,
                 .foregroundColor: NSColor.labelColor,
             ]
         )
 
-        // Style [GHOST_XXXX] tokens with a pill-like background
-        let pattern = #"\[GHOST_[A-Z0-9]{4}\]"#
+        // Style [TOKEN] tokens with a pill-like background
+        let pattern = #"\[[A-Z]+_[A-Z0-9]{4}\]"#
         if let regex = try? NSRegularExpression(pattern: pattern) {
             let nsString = text as NSString
             let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsString.length))
             for match in matches {
                 attributed.addAttributes([
-                    .backgroundColor: NSColor(GhostTheme.purple).withAlphaComponent(0.2),
-                    .foregroundColor: NSColor(GhostTheme.purple),
+                    .backgroundColor: NSColor(ZebraTheme.purple).withAlphaComponent(0.2),
+                    .foregroundColor: NSColor(ZebraTheme.purple),
                     .font: NSFont.monospacedSystemFont(ofSize: 12, weight: .semibold),
                 ], range: match.range)
             }

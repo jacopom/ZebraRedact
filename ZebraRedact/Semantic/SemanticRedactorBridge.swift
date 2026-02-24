@@ -78,10 +78,10 @@ extension RedactionResult {
 //         let newApplied = result.toAppliedReplacements(piiItems: newItems)
 //         await MainActor.run {
 //             detectedItems = newItems
-//             ghostedText = result.redactedText
+//             redactedText = result.redactedText
 //             appliedReplacements = newApplied
 //             privacyScore = calculateScore(items: newItems)
-//             GhostMappingStore.shared.storeBatch(items: newItems)
+//             TokenMappingStore.shared.storeBatch(items: newItems)
 //         }
 //         return
 //     }

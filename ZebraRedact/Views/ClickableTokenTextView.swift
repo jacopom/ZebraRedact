@@ -61,7 +61,7 @@ struct ClickableTokenTextView: NSViewRepresentable {
             var searchRange = NSRange(location: 0, length: (text as NSString).length)
 
             while searchRange.location < (text as NSString).length {
-                let foundRange = (text as NSString).range(of: item.ghostToken, range: searchRange)
+                let foundRange = (text as NSString).range(of: item.token, range: searchRange)
                 guard foundRange.location != NSNotFound else { break }
 
                 // Only apply link if this position hasn't been used yet

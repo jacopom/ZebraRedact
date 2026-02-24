@@ -262,7 +262,7 @@ struct MainWindow: View {
 
     private var sidebarPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
 
                     // PII Types (collapsible)
@@ -452,6 +452,29 @@ struct MainWindow: View {
                 }
             }
             Spacer(minLength: 0)
+
+            // Settings link pinned to sidebar bottom
+            Rectangle()
+                .fill(Color.white.opacity(0.06))
+                .frame(height: 1)
+
+            Button(action: {
+                // Use the standard Cocoa action so SwiftUI's Settings scene opens correctly
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 13))
+                    Text("Settings")
+                        .font(.system(size: 12))
+                    Spacer()
+                }
+                .foregroundColor(Color.white.opacity(0.55))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
         .background(Color(red: 0.13, green: 0.13, blue: 0.15))
         .colorScheme(.dark)
@@ -531,7 +554,7 @@ struct MainWindow: View {
                     noDetectionsState
                 } else {
                     ClickableTokenTextView(
-                        text: detector.ghostedText,
+                        text: detector.redactedText,
                         items: detector.detectedItems,
                         onTokenClick: { item in selectedToken = item },
                         onTextSelection: { selectedText in
@@ -634,9 +657,9 @@ struct MainWindow: View {
                     }
                 }
 
-                if !detector.ghostedText.isEmpty {
+                if !detector.redactedText.isEmpty {
                     HStack(spacing: 0) {
-                        Button(action: { copyToClipboard(detector.ghostedText) }) {
+                        Button(action: { copyToClipboard(detector.redactedText) }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "doc.on.doc").font(.system(size: 11))
                                 Text("Copy Redacted").font(.system(size: 11))
@@ -727,7 +750,7 @@ struct MainWindow: View {
 
         ---
 
-        \(detector.ghostedText)
+        \(detector.redactedText)
         """
         copyToClipboard(prompt)
     }
@@ -1086,7 +1109,7 @@ struct InlineRehydrateView: View {
     @State private var tokenCount: Int = 0
 
     private var rehydrated: String {
-        GhostMappingStore.shared.rehydrate(pastedText)
+        TokenMappingStore.shared.rehydrate(pastedText)
     }
 
     var body: some View {
@@ -1112,7 +1135,7 @@ struct InlineRehydrateView: View {
                     .font(.system(.body, design: .monospaced))
                     .padding(.horizontal, 10)
                     .onChange(of: pastedText) { _, text in
-                        tokenCount = GhostMappingStore.shared.rehydrationCount(in: text)
+                        tokenCount = TokenMappingStore.shared.rehydrationCount(in: text)
                     }
             }
 
@@ -1274,7 +1297,7 @@ struct AlternativesDropdown: View {
                             Text("Token:")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            Text(item.ghostToken)
+                            Text(item.token)
                                 .font(.system(.callout, design: .monospaced))
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)

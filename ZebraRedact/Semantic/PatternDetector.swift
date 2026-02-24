@@ -29,7 +29,8 @@ final class PatternDetector {
             make(#"\b(?:\d{1,3}\.){3}\d{1,3}\b"#, .ipAddress),
             make(#"\b(?:sk-|pk_live_|pk_test_|AKIA|ghp_|gho_|ghu_|glpat-)[a-zA-Z0-9\-_]{16,}"#, .apiKey),
             // --- Metrics ---
-            make(#"\b\d+(?:\.\d+)?%"#, .metric),
+            // Match "7% growth" as a unit (avoids "single-digit growth growth" double-word)
+            make(#"\b\d+(?:\.\d+)?%(?:\s+growth)?"#, .metric),
             make(#"\$[\d,]+(?:\.\d+)?[KMBkmb]?\b"#, .metric),
             // Small bare integers that carry operational significance (e.g. "3 outages")
             make(#"\b[1-9]\b"#, .metric),

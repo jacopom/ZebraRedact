@@ -11,21 +11,14 @@ struct ConfidenceAssessment {
     /// Does the redacted text still make logical sense?
     let coherence: Int  // 0-100
 
-    /// Overall confidence (minimum of the three scores)
+    /// Overall confidence: average of the three goodness scores
     var overallConfidence: Int {
-        min(taskCompletability, 100 - hallucinationRisk, coherence)
+        (taskCompletability + (100 - hallucinationRisk) + coherence) / 3
     }
 
     /// Status based on overall confidence
     var status: ConfidenceStatus {
-        switch overallConfidence {
-        case 80...100:
-            return .ready
-        case 50..<80:
-            return .reviewNeeded
-        default:
-            return .tooDegraded
-        }
+        overallConfidence > 30 ? .ready : .reviewNeeded
     }
 
     /// Color for UI display

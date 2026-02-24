@@ -33,7 +33,10 @@ enum SemanticSynthesizer {
 
     /// "7%" → "single-digit growth"  |  "3" → "several"  |  "$1.2M" → "millions in revenue"
     static func metricReplacement(_ original: String) -> String {
-        let trimmed = original.trimmingCharacters(in: .whitespaces)
+        // Strip trailing " growth" so "7% growth" is handled the same as "7%"
+        let stripped = original.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: #"\s+growth$"#, with: "", options: .regularExpression)
+        let trimmed = stripped.trimmingCharacters(in: .whitespaces)
 
         // Percentage values
         if trimmed.hasSuffix("%") {
@@ -56,10 +59,7 @@ enum SemanticSynthesizer {
             let body = trimmed.dropFirst().replacingOccurrences(of: ",", with: "")
             let suffix = body.last.map { String($0).lowercased() } ?? ""
             if suffix == "b" { return "a billion-dollar figure" }
-            if suffix == "m" {
-                if let n = Double(String(body.dropLast())), n < 10 { return "low eight figures in revenue" }
-                return "millions in revenue"
-            }
+            if suffix == "m" { return "millions in revenue" }
             if suffix == "k" { return "thousands in revenue" }
             return "a key financial figure"
         }

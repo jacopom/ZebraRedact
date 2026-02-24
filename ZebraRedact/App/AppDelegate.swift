@@ -20,9 +20,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "theatermasks.fill", accessibilityDescription: "ZebraRedact")
-            button.image?.size = NSSize(width: 16, height: 16)
-            button.image?.isTemplate = true
+            if let img = NSImage(named: "ZebraMenuBar") {
+                img.size = NSSize(width: 18, height: 18)
+                img.isTemplate = true   // lets macOS invert for dark/light menu bar
+                button.image = img
+            }
         }
 
         let menu = NSMenu()

@@ -135,20 +135,6 @@ struct MainWindow: View {
 
     private var topBar: some View {
         ZStack {
-            // Left: app logo + name
-            HStack {
-                HStack(spacing: 7) {
-                    Image("ZebraLogo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 26)
-                    Text("ZebraRedact")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.primary)
-                }
-                Spacer()
-            }
-
             // Tab switcher centered over content area only (excludes sidebar width)
             HStack {
                 Spacer()

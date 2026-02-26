@@ -14,7 +14,7 @@ final class RegexDetector {
             // Phone — US/Canada: (415) 555-0192, 415-555-0192, +1 415.555.0192
             // Requires separator between all groups (excludes EINs like 84-3210987,
             // account numbers like 000482991703, and ABA routing like 021000021)
-            (.phone, #"\b(?:\+?1[\s\-\.]?)?(?:\(\d{3}\)|\d{3})[\s\-\.]\d{3}[\s\-\.]\d{4}\b(?![\-\d])"#),
+            (.phone, #"(?<!\d)(?:\+?1[\s\-\.]?)?(?:\(\d{3}\)|\d{3})[\s\-\.]\d{3}[\s\-\.]\d{4}(?![\-\d])"#),
             // Phone — International with explicit + prefix: +44 20 7946 0958, +33 6 12 34 56 78
             (.phone, #"\+[1-9]\d{0,2}[\s\-]\d{1,4}(?:[\s\-]\d{2,4}){1,4}\b"#),
             // Credit Card (Visa, MC, Amex, Discover)

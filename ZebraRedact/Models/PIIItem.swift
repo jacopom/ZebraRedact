@@ -136,137 +136,58 @@ struct PIIItem: Identifiable, Equatable {
         self.isManual = isManual
     }
 
-    // MARK: - Fake data pools (varied, international)
-
-    private enum FakeData {
-        static let names = [
-            "Emma Wilson", "James Chen", "Fatima Al-Hassan", "Lucas Moreau",
-            "Sofia Andersen", "Kwame Asante", "Priya Sharma", "Tobias Müller",
-            "Yuki Tanaka", "Amara Okafor", "Diego Fernández", "Astrid Lindqvist",
-            "Mohammed Al-Rashid", "Valentina Rossi", "Arjun Nair", "Chloe Dubois"
-        ]
-        static let emails = [
-            "a.wilson@techcorp.io", "j.chen@startup.co", "f.hassan@globalnet.org",
-            "l.moreau@example.fr", "sofia.a@university.edu", "k.asante@company.com",
-            "p.sharma@consulting.in", "t.mueller@firma.de", "y.tanaka@corp.jp",
-            "amara.o@nonprofit.org", "d.fernandez@empresa.es", "a.lindqvist@ab.se"
-        ]
-        static let phones = [
-            "(415) 555-0192", "+44 20 7946 0958", "+49 30 1234 5678",
-            "(212) 555-0134", "+33 1 23 45 67 89", "+81 3-1234-5678",
-            "(312) 555-0167", "+61 2 9876 5432", "+34 91 123 4567",
-            "(617) 555-0183", "+1 604 555-0147", "+55 11 9876-5432"
-        ]
-        static let addresses = [
-            "742 Evergreen Terrace, Springfield", "15 Rue de la Paix, Paris",
-            "Unter den Linden 77, Berlin", "350 Fifth Avenue, New York",
-            "1 Harbour Rd, Hong Kong", "Via Veneto 183, Rome",
-            "Avenida Paulista 900, São Paulo", "10 Downing Street, London",
-            "Shibuya Crossing 1-2-3, Tokyo", "Calle Gran Vía 28, Madrid"
-        ]
-        static let ipAddresses = [
-            "10.0.0.1", "172.16.0.1", "192.168.0.100", "10.10.1.50",
-            "172.31.255.1", "192.168.100.14", "10.0.1.200", "172.20.10.1"
-        ]
-
-        static func pick<T>(_ pool: [T], seed: String) -> T {
-            // Deterministic-ish pick so the same input always gets the same fake value
-            let hash = abs(seed.unicodeScalars.reduce(0) { $0 &+ Int($1.value) })
-            return pool[hash % pool.count]
-        }
-
-        /// Like pick, but guarantees the result differs from the original (case-insensitive).
-        static func pickExcluding(_ pool: [String], seed: String, original: String) -> String {
-            let filtered = pool.filter { $0.caseInsensitiveCompare(original) != .orderedSame }
-            let actualPool = filtered.isEmpty ? pool : filtered
-            let hash = abs(seed.unicodeScalars.reduce(0) { $0 &+ Int($1.value) })
-            return actualPool[hash % actualPool.count]
-        }
-    }
-
     /// Generate default alternatives for this PII type
     static func generateAlternatives(for type: PIIType, original: String) -> [RedactionAlternative] {
         let tokenId = UUID().uuidString.prefix(4).uppercased()
 
+        let prefix: String
+        switch type {
+        case .email:      prefix = "EMAIL"
+        case .phone:      prefix = "PHONE"
+        case .creditCard: prefix = "CARD"
+        case .ssn:        prefix = "SSN"
+        case .ipAddress:  prefix = "IP"
+        case .apiKey:     prefix = "APIKEY"
+        case .name:       prefix = "NAME"
+        case .address:    prefix = "ADDR"
+        case .custom:     prefix = "CUSTOM"
+        }
+
+        return [
+            RedactionAlternative(strategy: .token, text: "[\(prefix)_\(tokenId)]", description: "Unique identifier token"),
+            RedactionAlternative(strategy: .partial, text: partialRedaction(for: type, original: original), description: "Partially masked"),
+            RedactionAlternative(strategy: .contextual, text: contextualPlaceholder(for: type), description: "Descriptive placeholder"),
+            RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
+        ]
+    }
+
+    private static func partialRedaction(for type: PIIType, original: String) -> String {
         switch type {
         case .email:
-            let fakeEmail = FakeData.pickExcluding(FakeData.emails, seed: original, original: original)
-            return [
-                RedactionAlternative(strategy: .token, text: "[EMAIL_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: fakeEmail, description: "Realistic fake email"),
-                RedactionAlternative(strategy: .partial, text: "\(original.prefix(1))***@***", description: "Show first character only"),
-                RedactionAlternative(strategy: .contextual, text: "[email address]", description: "Descriptive placeholder"),
-                RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
-            ]
-
-        case .phone:
-            let fakePhone = FakeData.pickExcluding(FakeData.phones, seed: original, original: original)
-            return [
-                RedactionAlternative(strategy: .token, text: "[PHONE_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: fakePhone, description: "Realistic fake number"),
-                RedactionAlternative(strategy: .partial, text: "***-***-\(original.suffix(4))", description: "Show last 4 digits"),
-                RedactionAlternative(strategy: .contextual, text: "[phone number]", description: "Descriptive placeholder"),
-                RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
-            ]
-
-        case .creditCard:
-            return [
-                RedactionAlternative(strategy: .token, text: "[CARD_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .partial, text: "****-****-****-\(original.suffix(4))", description: "Show last 4 digits"),
-                RedactionAlternative(strategy: .contextual, text: "[credit card]", description: "Descriptive placeholder"),
-                RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
-            ]
-
-        case .ssn:
-            return [
-                RedactionAlternative(strategy: .token, text: "[SSN_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .partial, text: "***-**-\(original.suffix(4))", description: "Show last 4 digits"),
-                RedactionAlternative(strategy: .contextual, text: "[SSN]", description: "Descriptive placeholder"),
-                RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
-            ]
-
-        case .ipAddress:
-            let fakeIP = FakeData.pickExcluding(FakeData.ipAddresses, seed: original, original: original)
-            return [
-                RedactionAlternative(strategy: .token, text: "[IP_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: fakeIP, description: "Fake private IP address"),
-                RedactionAlternative(strategy: .contextual, text: "[IP address]", description: "Descriptive placeholder"),
-                RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
-            ]
-
+            return "\(original.prefix(1))***@***"
+        case .phone, .creditCard, .ssn:
+            let last4 = original.count >= 4 ? String(original.suffix(4)) : original
+            return "***\(last4)"
         case .apiKey:
-            return [
-                RedactionAlternative(strategy: .token, text: "[APIKEY_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .partial, text: "\(original.prefix(8))...", description: "Show first 8 characters"),
-                RedactionAlternative(strategy: .contextual, text: "[API key]", description: "Descriptive placeholder"),
-                RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
-            ]
-
+            return "\(original.prefix(min(8, original.count)))..."
         case .name:
-            let fakeName = FakeData.pickExcluding(FakeData.names, seed: original, original: original)
-            return [
-                RedactionAlternative(strategy: .token, text: "[NAME_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: fakeName, description: "Varied fake name"),
-                RedactionAlternative(strategy: .partial, text: "\(original.prefix(1))***", description: "Show first letter only"),
-                RedactionAlternative(strategy: .contextual, text: "[person]", description: "Descriptive placeholder"),
-                RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
-            ]
+            return "\(original.prefix(1))***"
+        default:
+            return "[REDACTED]"
+        }
+    }
 
-        case .address:
-            let fakeAddr = FakeData.pickExcluding(FakeData.addresses, seed: original, original: original)
-            return [
-                RedactionAlternative(strategy: .token, text: "[ADDR_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .semantic, text: fakeAddr, description: "Varied fake address"),
-                RedactionAlternative(strategy: .contextual, text: "[address]", description: "Descriptive placeholder"),
-                RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
-            ]
-
-        case .custom:
-            return [
-                RedactionAlternative(strategy: .token, text: "[CUSTOM_\(tokenId)]", description: "Unique identifier token"),
-                RedactionAlternative(strategy: .contextual, text: "[custom PII]", description: "Descriptive placeholder"),
-                RedactionAlternative(strategy: .generic, text: "[REDACTED]", description: "Generic redaction")
-            ]
+    private static func contextualPlaceholder(for type: PIIType) -> String {
+        switch type {
+        case .email:      return "[email address]"
+        case .phone:      return "[phone number]"
+        case .creditCard: return "[credit card]"
+        case .ssn:        return "[SSN]"
+        case .ipAddress:  return "[IP address]"
+        case .apiKey:     return "[API key]"
+        case .name:       return "[person]"
+        case .address:    return "[address]"
+        case .custom:     return "[custom PII]"
         }
     }
 

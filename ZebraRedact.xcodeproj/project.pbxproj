@@ -9,101 +9,51 @@
 /* Begin PBXBuildFile section */
 		A100000001 /* ZebraRedactApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000001 /* ZebraRedactApp.swift */; };
 		A100000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000002 /* AppDelegate.swift */; };
-		A100000003 /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000003 /* OverlayPanel.swift */; };
 		A100000004 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000004 /* OnboardingView.swift */; };
-		A100000005 /* OverlayEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000005 /* OverlayEditorView.swift */; };
-		A100000006 /* GhostScoreBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000006 /* GhostScoreBadge.swift */; };
 		A100000007 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000007 /* SettingsView.swift */; };
-		A100000008 /* ModelManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000008 /* ModelManagementView.swift */; };
-		A100000009 /* VaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000009 /* VaultView.swift */; };
 		A10000000A /* PIIItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000A /* PIIItem.swift */; };
-		A10000000B /* MLXModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000B /* MLXModelInfo.swift */; };
 		A10000000C /* RegexDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000C /* RegexDetector.swift */; };
 		A10000000D /* PIIDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000D /* PIIDetector.swift */; };
-		A10000000E /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000E /* ModelManager.swift */; };
-		A10000000F /* VaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000F /* VaultManager.swift */; };
 		A100000010 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000010 /* HotkeyManager.swift */; };
-		A100000011 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000011 /* ClipboardManager.swift */; };
 		A100000012 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000012 /* Constants.swift */; };
 		A100000013 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000013 /* Theme.swift */; };
 		A100000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B100000014 /* Assets.xcassets */; };
 		A100000015 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B100000015 /* PrivacyInfo.xcprivacy */; };
-		A100000016 /* HighlightedTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000018 /* HighlightedTextView.swift */; };
 		A100000017 /* GhostMappingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000019 /* GhostMappingStore.swift */; };
 		A100000018 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B152F43B6F800AD681A /* MainWindow.swift */; };
 		A100000019 /* ClickableTokenTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B142F43B6F800AD681A /* ClickableTokenTextView.swift */; };
-		A10000001A /* AlternativesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B132F43B6F800AD681A /* AlternativesSheet.swift */; };
 		A10000001B /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B162F43B70700AD681A /* DesignSystem.swift */; };
 		A10000001C /* ConfidenceAssessment.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */; };
 		A10000001D /* NLTaggerDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000001F /* NLTaggerDetector.swift */; };
 		EA2E793F2F45E75A0044850B /* RedactionMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E793E2F45E75A0044850B /* RedactionMode.swift */; };
-		EA2E79422F45E7770044850B /* SemanticAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79412F45E7770044850B /* SemanticAnalyzer.swift */; };
-		EA2E79432F45E7770044850B /* MLXContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79402F45E7770044850B /* MLXContextEngine.swift */; };
-		EA2E79452F45E7780044850B /* FoundationModelEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79442F45E7780044850B /* FoundationModelEngine.swift */; };
-		EA2E79462F45E7820044850B /* OllamaEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79472F45E7820044850B /* OllamaEngine.swift */; };
-		EA2E79482F45E7830044850B /* LLMAwareSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2E79492F45E7830044850B /* LLMAwareSetupSheet.swift */; };
-		EB00000021 /* SemanticRedactorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000011 /* SemanticRedactorAPI.swift */; };
-		EB00000022 /* RedactionConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000012 /* RedactionConfig.swift */; };
-		EB00000023 /* LocalLLMClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000013 /* LocalLLMClient.swift */; };
-		EB00000024 /* PatternDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000014 /* PatternDetector.swift */; };
-		EB00000025 /* SemanticSynthesizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000015 /* SemanticSynthesizer.swift */; };
-		EB00000026 /* SufficiencyScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000016 /* SufficiencyScorer.swift */; };
-		EB00000027 /* SemanticRedactorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000017 /* SemanticRedactorImpl.swift */; };
-		EB00000028 /* SemanticRedactorBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000018 /* SemanticRedactorBridge.swift */; };
 		A200000001 /* ZebraRedactFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000001 /* ZebraRedactFeatureTests.swift */; };
-		A200000002 /* SemanticRedactorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000002 /* SemanticRedactorTests.swift */; };
 		A200000003 /* DetectionCorpusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000003 /* DetectionCorpusTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		B100000001 /* ZebraRedactApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZebraRedactApp.swift; sourceTree = "<group>"; };
 		B100000002 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		B100000003 /* OverlayPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPanel.swift; sourceTree = "<group>"; };
 		B100000004 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		B100000005 /* OverlayEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayEditorView.swift; sourceTree = "<group>"; };
-		B100000006 /* GhostScoreBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostScoreBadge.swift; sourceTree = "<group>"; };
 		B100000007 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		B100000008 /* ModelManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManagementView.swift; sourceTree = "<group>"; };
-		B100000009 /* VaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultView.swift; sourceTree = "<group>"; };
 		B10000000A /* PIIItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PIIItem.swift; sourceTree = "<group>"; };
-		B10000000B /* MLXModelInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXModelInfo.swift; sourceTree = "<group>"; };
 		B10000000C /* RegexDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegexDetector.swift; sourceTree = "<group>"; };
 		B10000000D /* PIIDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PIIDetector.swift; sourceTree = "<group>"; };
-		B10000000E /* ModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManager.swift; sourceTree = "<group>"; };
-		B10000000F /* VaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultManager.swift; sourceTree = "<group>"; };
 		B100000010 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
-		B100000011 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
 		B100000012 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		B100000013 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		B100000014 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B100000015 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		B100000016 /* ZebraRedact.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ZebraRedact.entitlements; sourceTree = "<group>"; };
 		B100000017 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		B100000018 /* HighlightedTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedTextView.swift; sourceTree = "<group>"; };
 		B100000019 /* GhostMappingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostMappingStore.swift; sourceTree = "<group>"; };
 		B10000001F /* NLTaggerDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NLTaggerDetector.swift; sourceTree = "<group>"; };
 		C100000001 /* ZebraRedact.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZebraRedact.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA2E793E2F45E75A0044850B /* RedactionMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionMode.swift; sourceTree = "<group>"; };
-		EA2E79402F45E7770044850B /* MLXContextEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXContextEngine.swift; sourceTree = "<group>"; };
-		EA2E79412F45E7770044850B /* SemanticAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticAnalyzer.swift; sourceTree = "<group>"; };
-		EADA2B132F43B6F800AD681A /* AlternativesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlternativesSheet.swift; sourceTree = "<group>"; };
 		EADA2B142F43B6F800AD681A /* ClickableTokenTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickableTokenTextView.swift; sourceTree = "<group>"; };
 		EADA2B152F43B6F800AD681A /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
 		EADA2B162F43B70700AD681A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfidenceAssessment.swift; sourceTree = "<group>"; };
-		EA2E79442F45E7780044850B /* FoundationModelEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelEngine.swift; sourceTree = "<group>"; };
-		EA2E79472F45E7820044850B /* OllamaEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaEngine.swift; sourceTree = "<group>"; };
-		EA2E79492F45E7830044850B /* LLMAwareSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMAwareSetupSheet.swift; sourceTree = "<group>"; };
-		EB00000011 /* SemanticRedactorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorAPI.swift; sourceTree = "<group>"; };
-		EB00000012 /* RedactionConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionConfig.swift; sourceTree = "<group>"; };
-		EB00000013 /* LocalLLMClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLMClient.swift; sourceTree = "<group>"; };
-		EB00000014 /* PatternDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternDetector.swift; sourceTree = "<group>"; };
-		EB00000015 /* SemanticSynthesizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticSynthesizer.swift; sourceTree = "<group>"; };
-		EB00000016 /* SufficiencyScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SufficiencyScorer.swift; sourceTree = "<group>"; };
-		EB00000017 /* SemanticRedactorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorImpl.swift; sourceTree = "<group>"; };
-		EB00000018 /* SemanticRedactorBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorBridge.swift; sourceTree = "<group>"; };
 		B200000001 /* ZebraRedactFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZebraRedactFeatureTests.swift; sourceTree = "<group>"; };
-		B200000002 /* SemanticRedactorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticRedactorTests.swift; sourceTree = "<group>"; };
 		B200000003 /* DetectionCorpusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionCorpusTests.swift; sourceTree = "<group>"; };
 		C200000001 /* ZebraRedactTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZebraRedactTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -148,20 +98,14 @@
 			isa = PBXGroup;
 			children = (
 				E200000001 /* ZebraRedactTests */,
-				EA2E79402F45E7770044850B /* MLXContextEngine.swift */,
-				EA2E79412F45E7770044850B /* SemanticAnalyzer.swift */,
 				EA2E793E2F45E75A0044850B /* RedactionMode.swift */,
-				EADA2B132F43B6F800AD681A /* AlternativesSheet.swift */,
 				EADA2B142F43B6F800AD681A /* ClickableTokenTextView.swift */,
 				EADA2B152F43B6F800AD681A /* MainWindow.swift */,
 				EADA2B162F43B70700AD681A /* DesignSystem.swift */,
 				EADA2B172F43B71800AD681A /* ConfidenceAssessment.swift */,
-				EA2E79442F45E7780044850B /* FoundationModelEngine.swift */,
-				EA2E79472F45E7820044850B /* OllamaEngine.swift */,
-				EA2E79492F45E7830044850B /* LLMAwareSetupSheet.swift */,
 				E100000002 /* ZebraRedact */,
 				E100000010 /* Products */,
-				EA2E793D2F45E7000044850B /* Recovered References */,
+				EA2E793D2F45E7000044850B /* Recovered References */
 			);
 			sourceTree = "<group>";
 		};
@@ -176,7 +120,7 @@
 				E10000000A /* Utilities */,
 				E10000000B /* Resources */,
 				B100000016 /* ZebraRedact.entitlements */,
-				B100000017 /* Info.plist */,
+				B100000017 /* Info.plist */
 			);
 			path = ZebraRedact;
 			sourceTree = "<group>";
@@ -184,14 +128,6 @@
 		EB000000G1 /* Semantic */ = {
 			isa = PBXGroup;
 			children = (
-				EB00000011 /* SemanticRedactorAPI.swift */,
-				EB00000012 /* RedactionConfig.swift */,
-				EB00000013 /* LocalLLMClient.swift */,
-				EB00000014 /* PatternDetector.swift */,
-				EB00000015 /* SemanticSynthesizer.swift */,
-				EB00000016 /* SufficiencyScorer.swift */,
-				EB00000017 /* SemanticRedactorImpl.swift */,
-				EB00000018 /* SemanticRedactorBridge.swift */,
 			);
 			path = Semantic;
 			sourceTree = "<group>";
@@ -200,8 +136,7 @@
 			isa = PBXGroup;
 			children = (
 				B100000001 /* ZebraRedactApp.swift */,
-				B100000002 /* AppDelegate.swift */,
-				B100000003 /* OverlayPanel.swift */,
+				B100000002 /* AppDelegate.swift */
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -211,7 +146,7 @@
 			children = (
 				E100000005 /* Onboarding */,
 				E100000006 /* Editor */,
-				E100000007 /* Settings */,
+				E100000007 /* Settings */
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -219,7 +154,7 @@
 		E100000005 /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
-				B100000004 /* OnboardingView.swift */,
+				B100000004 /* OnboardingView.swift */
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -227,9 +162,6 @@
 		E100000006 /* Editor */ = {
 			isa = PBXGroup;
 			children = (
-				B100000005 /* OverlayEditorView.swift */,
-				B100000006 /* GhostScoreBadge.swift */,
-				B100000018 /* HighlightedTextView.swift */,
 			);
 			path = Editor;
 			sourceTree = "<group>";
@@ -237,9 +169,7 @@
 		E100000007 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				B100000007 /* SettingsView.swift */,
-				B100000008 /* ModelManagementView.swift */,
-				B100000009 /* VaultView.swift */,
+				B100000007 /* SettingsView.swift */
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -247,8 +177,7 @@
 		E100000008 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				B10000000A /* PIIItem.swift */,
-				B10000000B /* MLXModelInfo.swift */,
+				B10000000A /* PIIItem.swift */
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -259,11 +188,8 @@
 				B10000000C /* RegexDetector.swift */,
 				B10000001F /* NLTaggerDetector.swift */,
 				B10000000D /* PIIDetector.swift */,
-				B10000000E /* ModelManager.swift */,
-				B10000000F /* VaultManager.swift */,
 				B100000010 /* HotkeyManager.swift */,
-				B100000011 /* ClipboardManager.swift */,
-				B100000019 /* GhostMappingStore.swift */,
+				B100000019 /* GhostMappingStore.swift */
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -272,7 +198,7 @@
 			isa = PBXGroup;
 			children = (
 				B100000012 /* Constants.swift */,
-				B100000013 /* Theme.swift */,
+				B100000013 /* Theme.swift */
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -281,7 +207,7 @@
 			isa = PBXGroup;
 			children = (
 				B100000014 /* Assets.xcassets */,
-				B100000015 /* PrivacyInfo.xcprivacy */,
+				B100000015 /* PrivacyInfo.xcprivacy */
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -290,7 +216,7 @@
 			isa = PBXGroup;
 			children = (
 				C100000001 /* ZebraRedact.app */,
-				C200000001 /* ZebraRedactTests.xctest */,
+				C200000001 /* ZebraRedactTests.xctest */
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -299,8 +225,7 @@
 			isa = PBXGroup;
 			children = (
 				B200000001 /* ZebraRedactFeatureTests.swift */,
-				B200000002 /* SemanticRedactorTests.swift */,
-				B200000003 /* DetectionCorpusTests.swift */,
+				B200000003 /* DetectionCorpusTests.swift */
 			);
 			path = ZebraRedactTests;
 			sourceTree = "<group>";
@@ -321,7 +246,7 @@
 			buildPhases = (
 				F100000002 /* Sources */,
 				D100000001 /* Frameworks */,
-				F100000003 /* Resources */,
+				F100000003 /* Resources */
 			);
 			buildRules = (
 			);
@@ -337,12 +262,12 @@
 			buildConfigurationList = G200000001 /* Build configuration list for PBXNativeTarget "ZebraRedactTests" */;
 			buildPhases = (
 				F200000002 /* Sources */,
-				F200000003 /* Frameworks (Tests) */,
+				F200000003 /* Frameworks (Tests) */
 			);
 			buildRules = (
 			);
 			dependencies = (
-				F200000010 /* PBXTargetDependency */,
+				F200000010 /* PBXTargetDependency */
 			);
 			name = ZebraRedactTests;
 			productName = ZebraRedactTests;
@@ -374,7 +299,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
-				Base,
+				Base
 			);
 			mainGroup = E100000001;
 			productRefGroup = E100000010 /* Products */;
@@ -382,7 +307,7 @@
 			projectRoot = "";
 			targets = (
 				F100000001 /* ZebraRedact */,
-				F200000001 /* ZebraRedactTests */,
+				F200000001 /* ZebraRedactTests */
 			);
 		};
 /* End PBXProject section */
@@ -393,7 +318,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A100000014 /* Assets.xcassets in Resources */,
-				A100000015 /* PrivacyInfo.xcprivacy in Resources */,
+				A100000015 /* PrivacyInfo.xcprivacy in Resources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -406,45 +331,21 @@
 			files = (
 				A100000001 /* ZebraRedactApp.swift in Sources */,
 				A100000002 /* AppDelegate.swift in Sources */,
-				A100000003 /* OverlayPanel.swift in Sources */,
 				A100000004 /* OnboardingView.swift in Sources */,
-				A100000005 /* OverlayEditorView.swift in Sources */,
-				A100000006 /* GhostScoreBadge.swift in Sources */,
 				A100000007 /* SettingsView.swift in Sources */,
-				A100000008 /* ModelManagementView.swift in Sources */,
-				A100000009 /* VaultView.swift in Sources */,
 				A10000000A /* PIIItem.swift in Sources */,
-				A10000000B /* MLXModelInfo.swift in Sources */,
 				A10000000C /* RegexDetector.swift in Sources */,
 				EA2E793F2F45E75A0044850B /* RedactionMode.swift in Sources */,
 				A10000000D /* PIIDetector.swift in Sources */,
-				A10000000E /* ModelManager.swift in Sources */,
-				A10000000F /* VaultManager.swift in Sources */,
 				A100000010 /* HotkeyManager.swift in Sources */,
-				A100000011 /* ClipboardManager.swift in Sources */,
 				A100000012 /* Constants.swift in Sources */,
 				A100000013 /* Theme.swift in Sources */,
-				A100000016 /* HighlightedTextView.swift in Sources */,
 				A100000017 /* GhostMappingStore.swift in Sources */,
 				A100000018 /* MainWindow.swift in Sources */,
-				EA2E79422F45E7770044850B /* SemanticAnalyzer.swift in Sources */,
-				EA2E79432F45E7770044850B /* MLXContextEngine.swift in Sources */,
 				A100000019 /* ClickableTokenTextView.swift in Sources */,
-				A10000001A /* AlternativesSheet.swift in Sources */,
 				A10000001B /* DesignSystem.swift in Sources */,
 				A10000001C /* ConfidenceAssessment.swift in Sources */,
-				A10000001D /* NLTaggerDetector.swift in Sources */,
-				EA2E79452F45E7780044850B /* FoundationModelEngine.swift in Sources */,
-				EA2E79462F45E7820044850B /* OllamaEngine.swift in Sources */,
-				EA2E79482F45E7830044850B /* LLMAwareSetupSheet.swift in Sources */,
-				EB00000021 /* SemanticRedactorAPI.swift in Sources */,
-				EB00000022 /* RedactionConfig.swift in Sources */,
-				EB00000023 /* LocalLLMClient.swift in Sources */,
-				EB00000024 /* PatternDetector.swift in Sources */,
-				EB00000025 /* SemanticSynthesizer.swift in Sources */,
-				EB00000026 /* SufficiencyScorer.swift in Sources */,
-				EB00000027 /* SemanticRedactorImpl.swift in Sources */,
-				EB00000028 /* SemanticRedactorBridge.swift in Sources */,
+				A10000001D /* NLTaggerDetector.swift in Sources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -453,8 +354,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A200000001 /* ZebraRedactFeatureTests.swift in Sources */,
-				A200000002 /* SemanticRedactorTests.swift in Sources */,
-				A200000003 /* DetectionCorpusTests.swift in Sources */,
+				A200000003 /* DetectionCorpusTests.swift in Sources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -505,7 +405,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
-					"$(inherited)",
+					"$(inherited)"
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -595,7 +495,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 ZebraRedact. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"@executable_path/../Frameworks"
 				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ghostclip.app;
@@ -624,7 +524,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 ZebraRedact. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"@executable_path/../Frameworks"
 				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ghostclip.app;
@@ -670,7 +570,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				H100000001 /* Debug */,
-				H100000002 /* Release */,
+				H100000002 /* Release */
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -679,7 +579,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				H100000003 /* Debug */,
-				H100000004 /* Release */,
+				H100000004 /* Release */
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -688,7 +588,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				H200000001 /* Debug */,
-				H200000002 /* Release */,
+				H200000002 /* Release */
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

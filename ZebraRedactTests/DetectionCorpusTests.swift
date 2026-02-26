@@ -371,59 +371,6 @@ final class DetectionCorpusTests: XCTestCase {
         )
     }
 
-    // ── Property: fake replacement ≠ original ────────────────────────────────
-    //
-    // Covers the specific values from the FakeData pool that were known to hash
-    // back to themselves before pickExcluding() was introduced.
-
-    func testFakeNeverEqualsOriginalForKnownCollisions() {
-        let knownCollisions: [(PIIType, String)] = [
-            // Names in FakeData.names pool — these used to map to themselves
-            (.name, "Yuki Tanaka"),
-            (.name, "Emma Wilson"),
-            (.name, "Priya Sharma"),
-            (.name, "Diego Fernández"),
-            (.name, "Arjun Nair"),
-            // Emails in FakeData.emails pool
-            (.email, "y.tanaka@corp.jp"),
-            (.email, "a.wilson@techcorp.io"),
-            (.email, "p.sharma@consulting.in"),
-            // Phones in FakeData.phones pool
-            (.phone, "(415) 555-0192"),
-            (.phone, "+44 20 7946 0958"),
-            // Addresses in FakeData.addresses pool
-            (.address, "742 Evergreen Terrace, Springfield"),
-            (.address, "1 Harbour Rd, Hong Kong"),
-            // IPs in FakeData.ipAddresses pool
-            (.ipAddress, "192.168.0.100"),
-            (.ipAddress, "10.0.0.1"),
-        ]
-
-        for (type, original) in knownCollisions {
-            let fake = PIIItem.generateAlternatives(for: type, original: original)
-                .first { $0.strategy == .semantic }?.text
-            XCTAssertNotNil(fake, "\(type.rawValue) has no semantic alternative")
-            XCTAssertNotEqual(fake, original,
-                "Fake for \(type.rawValue)(\"\(original)\") still equals original — pickExcluding() not working")
-        }
-    }
-
-    func testFakeIsDeterministicButVaries() {
-        // Same input → same fake every time
-        for _ in 0..<3 {
-            let a = PIIItem.generateAlternatives(for: .name, original: "Alice Brown").first { $0.strategy == .semantic }?.text
-            let b = PIIItem.generateAlternatives(for: .name, original: "Alice Brown").first { $0.strategy == .semantic }?.text
-            XCTAssertEqual(a, b, "Same input must always produce the same fake (deterministic hash)")
-        }
-
-        // Different inputs → more than one distinct output
-        let inputs = ["Alice Brown", "Bob Zhang", "Carol Davis", "David Müller", "Eva Okafor", "Frank Chen"]
-        let fakes = Set(inputs.compactMap {
-            PIIItem.generateAlternatives(for: .name, original: $0).first { $0.strategy == .semantic }?.text
-        })
-        XCTAssertGreaterThan(fakes.count, 1,
-            "Different names must produce more than one distinct fake — hash spread too narrow")
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -451,25 +398,12 @@ final class DetectorIntegrationTests: XCTestCase {
         ]
         for text in texts {
             let d = PIIDetector()
-            d.redactionMode = .token
             d.scan(text: text)
             await waitForPII(d)
             for item in d.detectedItems where item.isMasked {
                 XCTAssertFalse(d.redactedText.contains(item.originalText),
                     "Token mode: redactedText still contains \"\(item.originalText)\"")
             }
-        }
-    }
-
-    func testSemanticModeRedactedTextContainsNoPII() async {
-        let text = "Contact grace@ops.io or +1 (650) 555-0192 for the monthly report."
-        let d = PIIDetector()
-        d.redactionMode = .semantic
-        d.scan(text: text)
-        await waitForPII(d)
-        for item in d.detectedItems where item.isMasked {
-            XCTAssertFalse(d.redactedText.contains(item.originalText),
-                "Semantic mode: redactedText still contains \"\(item.originalText)\"")
         }
     }
 
@@ -491,15 +425,9 @@ final class DetectorIntegrationTests: XCTestCase {
         let d = PIIDetector()
         d.scan(text: text)
         await waitForPII(d)
-
-        for mode: RedactionMode in [.token, .semantic, .token] {
-            d.redactionMode = mode
-            d.remaskCurrentItems(originalText: text)
-            await waitForPII(d)
-            for (_, replacement) in d.appliedReplacements {
-                XCTAssertTrue(d.redactedText.contains(replacement),
-                    "[\(mode)] appliedReplacement '\(replacement)' not in redactedText after remask")
-            }
+        for (_, replacement) in d.appliedReplacements {
+            XCTAssertTrue(d.redactedText.contains(replacement),
+                "appliedReplacement '\(replacement)' not in redactedText")
         }
     }
 
@@ -508,7 +436,6 @@ final class DetectorIntegrationTests: XCTestCase {
     func testRehydrationRoundTripTokenMode() async {
         let original = "Send report to ida@finance.io and call (312) 555-0178."
         let d = PIIDetector()
-        d.redactionMode = .token
         d.scan(text: original)
         await waitForPII(d)
 
@@ -523,22 +450,6 @@ final class DetectorIntegrationTests: XCTestCase {
         }
     }
 
-    func testRehydrationRoundTripSemanticMode() async {
-        let original = "Contact hugo@devteam.io for access."
-        let d = PIIDetector()
-        d.redactionMode = .semantic
-        d.scan(text: original)
-        await waitForPII(d)
-
-        let redacted = d.redactedText
-        let restored = TokenMappingStore.shared.rehydrate(redacted)
-
-        for item in d.detectedItems where item.isMasked {
-            XCTAssertTrue(restored.contains(item.originalText),
-                "Semantic mode rehydration missing '\(item.originalText)' — TokenMappingStore may be storing token instead of actual replacement")
-        }
-    }
-
     // ── Duplicate entities don't corrupt output ───────────────────────────────
     //
     // Regression: "Maya" appeared twice in text → two separate PIIItems with the
@@ -548,7 +459,6 @@ final class DetectorIntegrationTests: XCTestCase {
     func testDuplicateEntityBothOccurrencesRedacted() async {
         let text = "Maya was present. The teacher spoke with Maya again later."
         let d = PIIDetector()
-        d.redactionMode = .token
         d.scan(text: text)
         await waitForPII(d)
 

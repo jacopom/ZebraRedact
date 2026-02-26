@@ -28,24 +28,6 @@ struct ConfidenceAssessment {
         }
     }
 
-    /// Color for UI display
-    var statusColor: String {
-        switch status {
-        case .ready: return "green"
-        case .reviewNeeded: return "orange"
-        case .tooDegraded: return "red"
-        }
-    }
-
-    /// Icon for UI display
-    var statusIcon: String {
-        switch status {
-        case .ready: return "checkmark.circle.fill"
-        case .reviewNeeded: return "exclamationmark.triangle.fill"
-        case .tooDegraded: return "xmark.circle.fill"
-        }
-    }
-
     /// Human-readable status text
     var statusText: String {
         switch status {

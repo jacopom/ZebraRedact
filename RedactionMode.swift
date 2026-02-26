@@ -1,18 +1,8 @@
 import Foundation
 
-/// Redaction strategies for PII masking
+/// Redaction strategy for PII masking — token mode only
 enum RedactionMode: String, CaseIterable, Codable {
     case token = "Token"
-    case semantic = "Semantic"
-    case llmAware = "LLM-Aware"
 
-    var title: String { rawValue }
-
-    var description: String {
-        switch self {
-        case .token: return "Maximum privacy"
-        case .semantic: return "Balanced approach"
-        case .llmAware: return "Apple Intelligence"
-        }
-    }
+    var description: String { "Maximum privacy" }
 }

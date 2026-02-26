@@ -75,31 +75,3 @@ enum DesignSystem {
     static let cardShadow = Color.black.opacity(0.1)
 }
 
-// MARK: - View Extensions
-
-extension View {
-    /// Apply Hemingway-style readability (increased line spacing, better font)
-    func readableStyle() -> some View {
-        self
-            .font(DesignSystem.Typography.body)
-            .lineSpacing(DesignSystem.Typography.lineSpacing)
-    }
-
-    /// Card-style container
-    func cardStyle() -> some View {
-        self
-            .padding(DesignSystem.Spacing.lg)
-            .background(DesignSystem.Colors.panel)
-            .cornerRadius(DesignSystem.Radius.lg)
-            .shadow(color: DesignSystem.cardShadow, radius: 4, x: 0, y: 2)
-    }
-
-    /// Subtle highlight background
-    func highlightStyle(_ color: Color) -> some View {
-        self
-            .padding(.horizontal, 4)
-            .padding(.vertical, 2)
-            .background(color)
-            .cornerRadius(DesignSystem.Radius.sm)
-    }
-}

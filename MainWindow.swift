@@ -1,10 +1,54 @@
 import SwiftUI
+import ApplicationServices
+
+// MARK: - AI Platform
+
+enum AIPlatform: CaseIterable {
+    case chatGPT, claude, perplexity, grok
+
+    var name: String {
+        switch self {
+        case .chatGPT:   return "ChatGPT"
+        case .claude:    return "Claude"
+        case .perplexity: return "Perplexity"
+        case .grok:      return "Grok"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .chatGPT:   return "message.circle"
+        case .claude:    return "sparkles"
+        case .perplexity: return "magnifyingglass.circle"
+        case .grok:      return "bolt.circle"
+        }
+    }
+
+    var url: URL {
+        switch self {
+        case .chatGPT:   return URL(string: "https://chatgpt.com/")!
+        case .claude:    return URL(string: "https://claude.ai/new")!
+        case .perplexity: return URL(string: "https://www.perplexity.ai/")!
+        case .grok:      return URL(string: "https://x.com/i/grok")!
+        }
+    }
+
+    /// Seconds to wait before auto-paste — heavier SPAs need more time
+    var pasteDelay: TimeInterval {
+        switch self {
+        case .chatGPT:    return 2.5
+        case .claude:     return 2.5
+        case .perplexity: return 4.0
+        case .grok:       return 5.0
+        }
+    }
+}
 
 // MARK: - App Tab
 
 enum AppTab: String, CaseIterable {
     case redact = "Redact"
-    case rehydrate = "Re-hydrate"
+    case rehydrate = "Restore"
 }
 
 // MARK: - Domain Preset
@@ -36,6 +80,7 @@ enum DomainPreset: String, CaseIterable, Identifiable {
 // MARK: - Main Window
 
 struct MainWindow: View {
+    @Environment(\.openSettings) private var openSettings
     @StateObject private var detector = PIIDetector()
     @State private var inputText: String = ""
     @State private var selectedToken: PIIItem?
@@ -46,21 +91,9 @@ struct MainWindow: View {
     // Sidebar
     @State private var sidebarVisible: Bool = true
     @AppStorage("domainPreset") private var selectedDomainPreset: DomainPreset = .none
-    @State private var installedOllamaModels: [String] = []
-    @State private var selectedAIModelId: String = "none"
-
-    // Popovers
     @State private var showStatusPopover: Bool = false
-    @State private var showLLMSetupSheet: Bool = false
-
-    // Sidebar state
     @State private var piiTypesExpanded: Bool = false
 
-    // Manual tokenization
-    @State private var pendingManualTokenText: String? = nil
-    @State private var showManualTokenSheet: Bool = false
-    @State private var manualTokenType: PIIType = .custom
-    @State private var manualTokenError: String? = nil
 
     var body: some View {
         ZStack {
@@ -106,29 +139,6 @@ struct MainWindow: View {
         }
         .frame(minWidth: 820, minHeight: 540)
         .background(Color(NSColor.windowBackgroundColor))
-        .sheet(isPresented: $showLLMSetupSheet, onDismiss: {
-            Task {
-                installedOllamaModels = (try? await OllamaEngine.listModels()) ?? []
-                if let saved = OllamaEngine.activeModel, saved != "none" {
-                    selectedAIModelId = saved
-                }
-            }
-        }) { LLMAwareSetupSheet() }
-        .sheet(isPresented: $showManualTokenSheet) {
-            ManualTokenSheet(
-                isPresented: $showManualTokenSheet,
-                selectedText: pendingManualTokenText ?? "",
-                piiType: $manualTokenType,
-                errorMessage: $manualTokenError,
-                onConfirm: applyManualToken
-            )
-        }
-        .task {
-            installedOllamaModels = (try? await OllamaEngine.listModels()) ?? []
-            if let saved = OllamaEngine.activeModel {
-                selectedAIModelId = saved
-            }
-        }
     }
 
     // MARK: - Top Bar
@@ -147,39 +157,15 @@ struct MainWindow: View {
             // Right-side controls pinned to trailing edge
             HStack {
                 Spacer()
-                HStack(spacing: 8) {
-                    if detector.isFoundationModelsActive || detector.isOllamaActive {
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 10, weight: .semibold))
-                            Text("AI")
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.purple)
-                        .cornerRadius(10)
-                    }
-
-                    Button(action: { showLLMSetupSheet = true }) {
-                        Image(systemName: "cpu")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("LLM-Aware Setup")
-
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.18)) { sidebarVisible.toggle() }
-                    }) {
-                        Image(systemName: "sidebar.right")
-                            .font(.system(size: 14))
-                            .foregroundColor(sidebarVisible ? .primary : .secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help(sidebarVisible ? "Hide sidebar" : "Show sidebar")
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.18)) { sidebarVisible.toggle() }
+                }) {
+                    Image(systemName: "sidebar.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(sidebarVisible ? .primary : .secondary)
                 }
+                .buttonStyle(.borderless)
+                .help(sidebarVisible ? "Hide sidebar" : "Show sidebar")
             }
         }
         .padding(.horizontal, 14)
@@ -243,7 +229,8 @@ struct MainWindow: View {
             .frame(maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding(12)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 12)
     }
 
     private var rehydrateContent: some View {
@@ -255,7 +242,8 @@ struct MainWindow: View {
             InlineRehydrateView()
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(12)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Sidebar (right, dark)
@@ -348,72 +336,7 @@ struct MainWindow: View {
                         .fill(Color.white.opacity(0.06))
                         .frame(height: 1)
 
-                    // Redaction Mode — dropdown
-                    darkSection(title: "Mode") {
-                        Picker("", selection: $detector.redactionMode) {
-                            Text("Tokens").tag(RedactionMode.token)
-                            Text("Fake Data").tag(RedactionMode.semantic)
-                            Text("AI Classify").tag(RedactionMode.llmAware)
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .onChange(of: detector.redactionMode) { _, mode in
-                            if mode == .llmAware, selectedAIModelId != "none" {
-                                OllamaEngine.activeModel = selectedAIModelId
-                            }
-                            if !inputText.isEmpty { detector.remaskCurrentItems(originalText: inputText) }
-                        }
-                    }
-
-                    Rectangle()
-                        .fill(Color.white.opacity(0.06))
-                        .frame(height: 1)
-
-                    // AI Model — dimmed when not in AI Classify mode
-                    let aiActive = detector.redactionMode == .llmAware
-                    darkSection(title: "AI Model") {
-                        Picker("", selection: $selectedAIModelId) {
-                            Text("None (Semantic)").tag("none")
-                            if !installedOllamaModels.isEmpty {
-                                Divider()
-                                ForEach(installedOllamaModels, id: \.self) { model in
-                                    Text(model).tag(model)
-                                }
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .onChange(of: selectedAIModelId) { _, modelId in
-                            applyAIModelSelection(modelId)
-                        }
-                        .disabled(!aiActive)
-
-                        if aiActive {
-                            HStack(spacing: 4) {
-                                Image(systemName: aiBackendStatus.icon)
-                                    .font(.system(size: 10))
-                                Text(aiBackendStatus.label)
-                                    .font(.system(size: 10))
-                            }
-                            .foregroundColor(aiBackendStatus.color)
-                            .padding(.top, 2)
-                        }
-
-                        if installedOllamaModels.isEmpty {
-                            Button("Download a model…") { showLLMSetupSheet = true }
-                                .buttonStyle(.borderless)
-                                .font(.system(size: 11))
-                                .foregroundColor(.purple)
-                                .padding(.top, 4)
-                                .disabled(!aiActive)
-                        }
-                    }
-                    .opacity(aiActive ? 1.0 : 0.38)
-                    .help(aiActive ? "" : "Compatible with AI Classify mode only")
-
-                    // Redacted Items — shown below AI Model
+                    // Redacted Items
                     if !detector.detectedItems.isEmpty {
                         Rectangle()
                             .fill(Color.white.opacity(0.06))
@@ -458,10 +381,7 @@ struct MainWindow: View {
                 .fill(Color.white.opacity(0.06))
                 .frame(height: 1)
 
-            Button(action: {
-                // Use the standard Cocoa action so SwiftUI's Settings scene opens correctly
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-            }) {
+            Button(action: { openSettings() }) {
                 HStack(spacing: 8) {
                     Image(systemName: "gearshape")
                         .font(.system(size: 13))
@@ -557,11 +477,13 @@ struct MainWindow: View {
                         text: detector.redactedText,
                         items: detector.detectedItems,
                         onTokenClick: { item in selectedToken = item },
-                        onTextSelection: { selectedText in
-                            pendingManualTokenText = selectedText
-                            manualTokenType = .custom
-                            manualTokenError = nil
-                            showManualTokenSheet = true
+                        onManualTag: { nsRange, piiType in
+                            let nsString = detector.redactedText as NSString
+                            guard nsRange.location != NSNotFound, nsRange.length > 0 else { return }
+                            let selectedText = nsString.substring(with: nsRange)
+                            guard !selectedText.isEmpty,
+                                  let range = inputText.range(of: selectedText, options: .literal) else { return }
+                            try? detector.addManualTag(range: range, type: piiType, in: inputText)
                         },
                         appliedTexts: detector.appliedReplacements
                     )
@@ -679,6 +601,12 @@ struct MainWindow: View {
                             Button(action: copyWithSafetyPrompt) {
                                 Label("Copy with Safety Prompt", systemImage: "lock.doc")
                             }
+                            Divider()
+                            ForEach(AIPlatform.allCases, id: \.name) { platform in
+                                Button(action: { openAIAssistant(platform) }) {
+                                    Label("Send to \(platform.name)", systemImage: platform.icon)
+                                }
+                            }
                         } label: {
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 9))
@@ -753,6 +681,37 @@ struct MainWindow: View {
         \(detector.redactedText)
         """
         copyToClipboard(prompt)
+    }
+
+    // MARK: - Send to AI
+
+    private func openAIAssistant(_ platform: AIPlatform) {
+        // Copy redacted text with context prompt for the AI
+        copyWithSafetyPrompt()
+        // Open the platform in the default browser
+        NSWorkspace.shared.open(platform.url)
+        // Auto-paste after page load if Accessibility is granted
+        if AXIsProcessTrusted() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + platform.pasteDelay) {
+                Self.simulatePaste()
+            }
+        } else {
+            // Ask for Accessibility permission so next time it auto-pastes
+            let opts = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
+            AXIsProcessTrustedWithOptions(opts)
+        }
+    }
+
+    private static func simulatePaste() {
+        let src = CGEventSource(stateID: .hidSystemState)
+        let vKey = CGKeyCode(9) // 'v'
+        let dn = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: true)
+        dn?.flags = .maskCommand
+        let up = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: false)
+        up?.flags = .maskCommand
+        // .cghidEventTap posts at the hardware level — works across all browsers
+        dn?.post(tap: .cghidEventTap)
+        up?.post(tap: .cghidEventTap)
     }
 
     private func pasteFromClipboard() {
@@ -988,43 +947,6 @@ struct MainWindow: View {
         if !inputText.isEmpty { detector.scan(text: inputText) }
     }
 
-    private var aiBackendStatus: (label: String, color: Color, icon: String) {
-        if detector.isFoundationModelsActive {
-            return ("Apple Intelligence", .green, "apple.intelligence")
-        }
-        if selectedAIModelId != "none" {
-            let shortName = selectedAIModelId.components(separatedBy: ":").first ?? selectedAIModelId
-            return ("Ollama · \(shortName)", .green, "antenna.radiowaves.left.and.right")
-        }
-        return ("NL Analysis (no model)", .orange, "wand.and.sparkles")
-    }
-
-    private func applyAIModelSelection(_ modelId: String) {
-        if modelId == "none" {
-            OllamaEngine.activeModel = nil
-            if detector.redactionMode == .llmAware {
-                detector.redactionMode = .semantic
-            }
-        } else {
-            OllamaEngine.activeModel = modelId
-            detector.redactionMode = .llmAware
-        }
-        if !inputText.isEmpty { detector.scan(text: inputText) }
-    }
-
-    private func applyManualToken() {
-        guard let text = pendingManualTokenText, !text.isEmpty else { return }
-        guard let range = inputText.range(of: text, options: .literal) else {
-            manualTokenError = "Could not find \"\(text)\" in input text"
-            return
-        }
-        do {
-            try detector.addManualTag(range: range, type: manualTokenType, in: inputText)
-            showManualTokenSheet = false
-        } catch {
-            manualTokenError = error.localizedDescription
-        }
-    }
 }
 
 // MARK: - Status Popover
@@ -1043,21 +965,9 @@ struct StatusPopover: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: 10) {
-                MetricRow(
-                    label: "Task completability",
-                    value: assessment.taskCompletability,
-                    direction: .higher
-                )
-                MetricRow(
-                    label: "Hallucination risk",
-                    value: assessment.hallucinationRisk,
-                    direction: .lower
-                )
-                MetricRow(
-                    label: "Coherence",
-                    value: assessment.coherence,
-                    direction: .higher
-                )
+                MetricRow(label: "Task completability", value: assessment.taskCompletability)
+                MetricRow(label: "Hallucination safety", value: 100 - assessment.hallucinationRisk)
+                MetricRow(label: "Coherence", value: assessment.coherence)
             }
         }
         .padding(20)
@@ -1066,11 +976,8 @@ struct StatusPopover: View {
 }
 
 private struct MetricRow: View {
-    enum Direction { case higher, lower }
-
     let label: String
     let value: Int
-    let direction: Direction
 
     private var barColor: Color {
         if value <= 20 { return .red }
@@ -1177,71 +1084,6 @@ struct InlineRehydrateView: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Manual Token Sheet
-
-struct ManualTokenSheet: View {
-    @Binding var isPresented: Bool
-    let selectedText: String
-    @Binding var piiType: PIIType
-    @Binding var errorMessage: String?
-    let onConfirm: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Tag as PII")
-                .font(.headline)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Selected text")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text(selectedText)
-                    .font(.system(.callout, design: .monospaced))
-                    .lineLimit(4)
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(red: 1.0, green: 0.92, blue: 0.7))
-                    .cornerRadius(6)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("PII Type")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Picker("PII Type", selection: $piiType) {
-                    ForEach(PIIType.allCases, id: \.self) { type in
-                        HStack(spacing: 6) {
-                            Image(systemName: type.icon)
-                            Text(type.rawValue)
-                        }
-                        .tag(type)
-                    }
-                }
-                .pickerStyle(.radioGroup)
-            }
-
-            if let error = errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-
-            Spacer()
-
-            HStack {
-                Button("Cancel") { isPresented = false }
-                    .keyboardShortcut(.cancelAction)
-                Spacer()
-                Button("Tag as \(piiType.rawValue)") { onConfirm() }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(24)
-        .frame(width: 360, height: 540)
     }
 }
 
@@ -1499,6 +1341,10 @@ struct InputTextView: NSViewRepresentable {
         textView.textColor = NSColor.labelColor
         textView.backgroundColor = NSColor.textBackgroundColor
         textView.textContainerInset = CGSize(width: 16, height: 16)
+        let para = NSMutableParagraphStyle()
+        para.lineSpacing = 6
+        textView.defaultParagraphStyle = para
+        textView.typingAttributes[.paragraphStyle] = para
         textView.delegate = context.coordinator
         return scrollView
     }

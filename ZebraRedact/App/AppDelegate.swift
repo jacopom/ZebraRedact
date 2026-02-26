@@ -3,15 +3,19 @@ import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
-    private var overlayPanel: OverlayPanel?
     private var onboardingWindow: NSWindow?
-    private var settingsWindow: NSWindow?
-    private var mainWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBarItem()
         registerHotkey()
         showOnboardingIfNeeded()
+    }
+
+    // Keep the app alive as a menu bar app after the last window is closed.
+    // Without this, closing the SwiftUI WindowGroup window puts the app into a
+    // zombie state (SwiftUI teardown + NSStatusItem run loop conflict → beach ball).
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
     }
 
     // MARK: - Menu Bar
@@ -35,8 +39,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
-        settingsItem.target = self
+        let settingsItem = NSMenuItem(title: "Settings...", action: Selector(("showSettingsWindow:")), keyEquivalent: ",")
+        settingsItem.target = nil
         menu.addItem(settingsItem)
 
         menu.addItem(NSMenuItem.separator())
@@ -88,54 +92,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Main Window
 
     @objc func triggerOverlay() {
-        // Show or focus the main window instead of overlay
-        showMainWindow()
-    }
-
-    private func showMainWindow() {
-        // If main window already exists and is visible, just bring it to front
-        if let window = mainWindow, window.isVisible {
+        // The SwiftUI WindowGroup owns the main window. Find it by title and
+        // bring it to the front (makeKeyAndOrderFront also un-hides a closed window).
+        if let window = NSApp.windows.first(where: { $0.title == "ZebraRedact" }) {
             window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
         }
-
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 700),
-            styleMask: [.titled, .closable, .resizable, .miniaturizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "ZebraRedact"
-        window.contentView = NSHostingView(rootView: MainWindow())
-        window.center()
-        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        self.mainWindow = window
-    }
-
-    // MARK: - Settings
-
-    @objc func openSettings() {
-        // If settings window already exists and is visible, just bring it front
-        if let window = settingsWindow, window.isVisible {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 400),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "ZebraRedact Settings"
-        window.contentView = NSHostingView(rootView: SettingsView())
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        self.settingsWindow = window
     }
 
 }
+

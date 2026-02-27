@@ -339,27 +339,18 @@ struct MainWindow: View {
                         .fill(Color.white.opacity(0.06))
                         .frame(height: 1)
 
-                    // Confidence threshold
-                    darkSection(title: "Min Confidence") {
-                        VStack(spacing: 6) {
-                            HStack(spacing: 6) {
-                                Text("All")
-                                    .font(.caption2)
-                                    .foregroundStyle(ZebraTheme.secondaryText)
-                                Slider(value: Binding(
-                                    get: { detector.confidenceThreshold },
-                                    set: { detector.setThreshold($0, originalText: inputText) }
-                                ), in: 0...1, step: 0.05)
-                                Text("\(Int(detector.confidenceThreshold * 100))%")
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(ZebraTheme.scoreColor(for: Int(detector.confidenceThreshold * 100)))
-                                    .frame(width: 30, alignment: .trailing)
+                    // Masking level
+                    darkSection(title: "Masking") {
+                        Picker("", selection: Binding(
+                            get: { detector.maskingLevel },
+                            set: { detector.setMaskingLevel($0, originalText: inputText) }
+                        )) {
+                            ForEach(MaskingLevel.allCases) { level in
+                                Text(level.rawValue).tag(level)
                             }
-                            Text(thresholdLabel)
-                                .font(.caption2)
-                                .foregroundStyle(ZebraTheme.secondaryText)
-                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
                     }
 
                     Rectangle()
@@ -428,14 +419,6 @@ struct MainWindow: View {
         }
         .background(Color(red: 0.13, green: 0.13, blue: 0.15))
         .colorScheme(.dark)
-    }
-
-    private var thresholdLabel: String {
-        switch detector.confidenceThreshold {
-        case 0..<0.01: return "Masking all detections"
-        case 0.01..<0.75: return "Skipping low-confidence items"
-        default: return "High-confidence only"
-        }
     }
 
     @ViewBuilder

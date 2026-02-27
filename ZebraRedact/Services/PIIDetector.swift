@@ -17,6 +17,25 @@ enum PIIError: LocalizedError {
     }
 }
 
+// MARK: - MaskingLevel
+
+enum MaskingLevel: String, CaseIterable, Identifiable {
+    case manualOnly    = "Manual"
+    case highConfidence = "High"
+    case all           = "All"
+
+    var id: String { rawValue }
+
+    /// Items with confidence below this value are detected but not auto-masked.
+    var confidenceThreshold: Double {
+        switch self {
+        case .manualOnly:     return 1.1   // Above any auto-detection score
+        case .highConfidence: return 0.85  // Regex (1.0) + NLTagger names (0.85, 0.88)
+        case .all:            return 0.0
+        }
+    }
+}
+
 // MARK: - PIIDetector
 
 @MainActor
@@ -26,8 +45,7 @@ final class PIIDetector: ObservableObject {
     @Published var privacyScore: Int = 100
     @Published var isProcessing: Bool = false
     @Published var enabledCategories: Set<PIIType> = Set(PIIType.allCases)
-    /// Minimum confidence required to auto-mask a detection (0.0 = mask all, 1.0 = only perfect matches)
-    @Published var confidenceThreshold: Double = 0.0
+    @Published var maskingLevel: MaskingLevel = .all
     /// Maps each item ID → the text actually placed in redactedText for that item
     @Published var appliedReplacements: [UUID: String] = [:]
 
@@ -40,7 +58,8 @@ final class PIIDetector: ObservableObject {
         guard !detectedItems.isEmpty else { return nil }
 
         let wordCount = max(1.0, Double(redactedText.split(separator: " ").count))
-        let redactionRatio = Double(detectedItems.count) / wordCount
+        // Use only masked items so quality reflects what's actually being hidden
+        let redactionRatio = Double(detectedItems.filter(\.isMasked).count) / wordCount
 
         let taskCompletability = max(20, 100 - Int(redactionRatio * 200))
         let hallucinationRisk = min(80, Int(redactionRatio * 150))
@@ -64,8 +83,8 @@ final class PIIDetector: ObservableObject {
         let allItems = detector.detect(in: text)
         let filtered = allItems.filter { enabledCategories.contains($0.type) }
 
-        // Apply confidence threshold: items below threshold are detected but not auto-masked
-        let threshold = confidenceThreshold
+        // Apply masking level: items below the threshold are detected but not auto-masked
+        let threshold = maskingLevel.confidenceThreshold
         let thresholded = filtered.map { item -> PIIItem in
             guard !item.isManual else { return item }
             var copy = item
@@ -266,15 +285,16 @@ final class PIIDetector: ObservableObject {
         }
     }
 
-    // MARK: - Confidence Threshold
+    // MARK: - Masking Level
 
-    /// Update the threshold and re-apply masking without re-running detection.
-    func setThreshold(_ value: Double, originalText: String) {
-        confidenceThreshold = value
+    /// Switch masking level and re-apply without re-running detection.
+    func setMaskingLevel(_ level: MaskingLevel, originalText: String) {
+        maskingLevel = level
+        let threshold = level.confidenceThreshold
         detectedItems = detectedItems.map { item in
             guard !item.isManual else { return item }
             var copy = item
-            copy.isMasked = item.confidence >= value
+            copy.isMasked = item.confidence >= threshold
             return copy
         }
         remask(originalText: originalText)

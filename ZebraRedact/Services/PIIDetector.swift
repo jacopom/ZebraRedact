@@ -26,6 +26,8 @@ final class PIIDetector: ObservableObject {
     @Published var privacyScore: Int = 100
     @Published var isProcessing: Bool = false
     @Published var enabledCategories: Set<PIIType> = Set(PIIType.allCases)
+    /// Minimum confidence required to auto-mask a detection (0.0 = mask all, 1.0 = only perfect matches)
+    @Published var confidenceThreshold: Double = 0.0
     /// Maps each item ID → the text actually placed in redactedText for that item
     @Published var appliedReplacements: [UUID: String] = [:]
 
@@ -62,18 +64,27 @@ final class PIIDetector: ObservableObject {
         let allItems = detector.detect(in: text)
         let filtered = allItems.filter { enabledCategories.contains($0.type) }
 
+        // Apply confidence threshold: items below threshold are detected but not auto-masked
+        let threshold = confidenceThreshold
+        let thresholded = filtered.map { item -> PIIItem in
+            guard !item.isManual else { return item }
+            var copy = item
+            copy.isMasked = item.confidence >= threshold
+            return copy
+        }
+
         // Re-anchor surviving manual items
         var preserved: [PIIItem] = []
         for manual in previousManualItems {
             guard let newRange = text.range(of: manual.originalText, options: .literal) else { continue }
-            let overlaps = filtered.contains { s in
+            let overlaps = thresholded.contains { s in
                 newRange.lowerBound < s.range.upperBound && s.range.lowerBound < newRange.upperBound
             }
             guard !overlaps else { continue }
             preserved.append(manual.withRange(newRange))
         }
 
-        let combined = (filtered + preserved)
+        let combined = (thresholded + preserved)
             .sorted { $0.range.lowerBound < $1.range.lowerBound }
 
         Task {
@@ -253,6 +264,20 @@ final class PIIDetector: ObservableObject {
         } else {
             enabledCategories.insert(type)
         }
+    }
+
+    // MARK: - Confidence Threshold
+
+    /// Update the threshold and re-apply masking without re-running detection.
+    func setThreshold(_ value: Double, originalText: String) {
+        confidenceThreshold = value
+        detectedItems = detectedItems.map { item in
+            guard !item.isManual else { return item }
+            var copy = item
+            copy.isMasked = item.confidence >= value
+            return copy
+        }
+        remask(originalText: originalText)
     }
 
     // MARK: - Score

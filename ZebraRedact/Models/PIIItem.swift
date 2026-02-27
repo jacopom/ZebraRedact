@@ -33,6 +33,7 @@ enum PIIType: String, CaseIterable, Identifiable, Codable {
     case ssn = "SSN"
     case ipAddress = "IP Address"
     case apiKey = "API Key"
+    case date = "Date"
     case name = "Name"
     case address = "Address"
     case custom = "Custom"
@@ -47,6 +48,7 @@ enum PIIType: String, CaseIterable, Identifiable, Codable {
         case .ssn: return "lock.shield.fill"
         case .ipAddress: return "network"
         case .apiKey: return "key.fill"
+        case .date: return "calendar"
         case .name: return "person.fill"
         case .address: return "mappin.and.ellipse"
         case .custom: return "tag.fill"
@@ -62,6 +64,7 @@ enum PIIType: String, CaseIterable, Identifiable, Codable {
         case .ssn:        return Color(red: 0.99, green: 0.87, blue: 0.55)  // Amber
         case .ipAddress:  return Color(red: 0.80, green: 0.72, blue: 0.99)  // Lavender
         case .apiKey:     return Color(red: 0.99, green: 0.95, blue: 0.58)  // Lemon
+        case .date:       return Color(red: 0.77, green: 0.71, blue: 0.99)  // Soft lavender
         case .name:       return Color(red: 0.58, green: 0.95, blue: 0.84)  // Mint
         case .address:    return Color(red: 0.64, green: 0.93, blue: 0.70)  // Sage
         case .custom:     return Color(red: 0.82, green: 0.82, blue: 0.86)  // Stone
@@ -148,6 +151,7 @@ struct PIIItem: Identifiable, Equatable {
         case .ssn:        prefix = "SSN"
         case .ipAddress:  prefix = "IP"
         case .apiKey:     prefix = "APIKEY"
+        case .date:       prefix = "DATE"
         case .name:       prefix = "NAME"
         case .address:    prefix = "ADDR"
         case .custom:     prefix = "CUSTOM"
@@ -185,6 +189,7 @@ struct PIIItem: Identifiable, Equatable {
         case .ssn:        return "[SSN]"
         case .ipAddress:  return "[IP address]"
         case .apiKey:     return "[API key]"
+        case .date:       return "[date]"
         case .name:       return "[person]"
         case .address:    return "[address]"
         case .custom:     return "[custom PII]"

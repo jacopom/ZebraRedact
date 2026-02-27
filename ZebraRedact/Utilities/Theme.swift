@@ -31,6 +31,7 @@ enum ZebraTheme {
         case .ssn:        return Color(hex: 0xF9A8D4) // pink
         case .ipAddress:  return Color(hex: 0xA5B4FC) // soft indigo
         case .apiKey:     return Color(hex: 0xFDBA74) // soft orange
+        case .date:       return Color(hex: 0xC4B5FD) // soft lavender
         case .name:       return Color(hex: 0x93C5FD) // soft blue
         case .address:    return Color(hex: 0x86EFAC) // soft green
         case .custom:     return Color(hex: 0xC4B5FD) // soft purple
@@ -46,6 +47,7 @@ enum ZebraTheme {
         case .ssn:        return NSColor(red: 0.976, green: 0.659, blue: 0.831, alpha: 1.0)
         case .ipAddress:  return NSColor(red: 0.647, green: 0.706, blue: 0.988, alpha: 1.0)
         case .apiKey:     return NSColor(red: 0.992, green: 0.729, blue: 0.455, alpha: 1.0)
+        case .date:       return NSColor(red: 0.769, green: 0.710, blue: 0.992, alpha: 1.0)
         case .name:       return NSColor(red: 0.576, green: 0.773, blue: 0.992, alpha: 1.0)
         case .address:    return NSColor(red: 0.525, green: 0.937, blue: 0.675, alpha: 1.0)
         case .custom:     return NSColor(red: 0.769, green: 0.710, blue: 0.992, alpha: 1.0)
@@ -60,6 +62,7 @@ enum ZebraTheme {
         case .ssn:        return Color(hex: 0xDB2777)
         case .ipAddress:  return blue
         case .apiKey:     return orange
+        case .date:       return purple
         case .name:       return blue
         case .address:    return green
         case .custom:     return purple

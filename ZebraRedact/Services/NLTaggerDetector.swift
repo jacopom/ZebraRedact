@@ -30,80 +30,12 @@ final class NLTaggerDetector {
     func detect(in text: String) -> [PIIItem] {
         guard #available(macOS 12.0, *) else { return [] }
 
+        // Double-run: once on text.capitalized (catches lowercase names/places),
+        // once on the original text (preserves mixed-case entities like iOS, McDonald's).
+        // Deduplication later handles any overlap between the two passes.
         var items: [PIIItem] = []
-
-        // Run NLTagger on the capitalized form so lowercase words like "jacopo"
-        // or "milano" are recognised as proper nouns. Capitalization preserves
-        // character offsets (no length change), so ranges map back to `text` unchanged.
-        let taggerInput = text.capitalized
-
-        let tagger = NLTagger(tagSchemes: [.nameType])
-        tagger.string = taggerInput
-
-        let options: NLTagger.Options = [.omitPunctuation, .omitWhitespace, .joinNames]
-
-        tagger.enumerateTags(in: taggerInput.startIndex..<taggerInput.endIndex, unit: .word, scheme: .nameType, options: options) { tag, capitalizedRange in
-            guard let tag = tag else { return true }
-            // Map the range from taggerInput back to original text via UTF-16 offsets.
-            // Capitalization is length-preserving for ASCII/Latin characters so the
-            // NSRange offsets are identical between taggerInput and text.
-            let nsRange = NSRange(capitalizedRange, in: taggerInput)
-            guard let tokenRange = Range(nsRange, in: text) else { return true }
-
-            let value = String(text[tokenRange])
-            // Skip document labels, legal suffixes, and financial acronyms
-            let normalized = value.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !Self.entityBlocklist.contains(normalized) else { return true }
-
-            switch tag {
-            case .personalName:
-                // Person names
-                let alternatives = PIIItem.generateAlternatives(for: .name, original: value)
-                let selectedId = alternatives.first?.id ?? UUID()
-                items.append(PIIItem(
-                    type: .name,
-                    range: tokenRange,
-                    originalText: value,
-                    alternatives: alternatives,
-                    selectedAlternativeId: selectedId,
-                    confidence: 0.85,
-                    isMasked: true
-                ))
-
-            case .organizationName:
-                // Company/org names can be sensitive (use custom for now)
-                let alternatives = PIIItem.generateAlternatives(for: .custom, original: value)
-                let selectedId = alternatives.first?.id ?? UUID()
-                items.append(PIIItem(
-                    type: .custom,
-                    range: tokenRange,
-                    originalText: value,
-                    alternatives: alternatives,
-                    selectedAlternativeId: selectedId,
-                    confidence: 0.80,
-                    isMasked: true
-                ))
-
-            case .placeName:
-                // Location data can be PII
-                let alternatives = PIIItem.generateAlternatives(for: .address, original: value)
-                let selectedId = alternatives.first?.id ?? UUID()
-                items.append(PIIItem(
-                    type: .address,
-                    range: tokenRange,
-                    originalText: value,
-                    alternatives: alternatives,
-                    selectedAlternativeId: selectedId,
-                    confidence: 0.75,
-                    isMasked: true
-                ))
-
-            default:
-                break
-            }
-
-            return true
-        }
+        items += runTagger(on: text.capitalized, mappingTo: text)
+        items += runTagger(on: text, mappingTo: text)
 
         // Still use regex for structured data (emails, phones, credit cards, SSN, IP, API keys)
         // NLTagger is best for semantic entities, not patterns
@@ -123,6 +55,53 @@ final class NLTaggerDetector {
         let merged = mergeHyphenatedNames(items: items, in: text)
 
         return deduplicateItems(merged)
+    }
+
+    /// Run NLTagger on `taggerInput` and map the resulting ranges back to `originalText`.
+    /// When `taggerInput == originalText` the mapping is identity; when `taggerInput` is
+    /// the capitalized form we use NSRange (length-preserving for ASCII/Latin) to bridge.
+    @available(macOS 12.0, *)
+    private func runTagger(on taggerInput: String, mappingTo originalText: String) -> [PIIItem] {
+        var items: [PIIItem] = []
+        let tagger = NLTagger(tagSchemes: [.nameType])
+        tagger.string = taggerInput
+        let options: NLTagger.Options = [.omitPunctuation, .omitWhitespace, .joinNames]
+
+        tagger.enumerateTags(in: taggerInput.startIndex..<taggerInput.endIndex,
+                             unit: .word, scheme: .nameType, options: options) { tag, taggerRange in
+            guard let tag = tag else { return true }
+            let nsRange = NSRange(taggerRange, in: taggerInput)
+            guard let tokenRange = Range(nsRange, in: originalText) else { return true }
+
+            let value = String(originalText[tokenRange])
+            let normalized = value.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !Self.entityBlocklist.contains(normalized) else { return true }
+
+            switch tag {
+            case .personalName:
+                let alternatives = PIIItem.generateAlternatives(for: .name, original: value)
+                let selectedId = alternatives.first?.id ?? UUID()
+                items.append(PIIItem(type: .name, range: tokenRange, originalText: value,
+                                     alternatives: alternatives, selectedAlternativeId: selectedId,
+                                     confidence: 0.85, isMasked: true))
+            case .organizationName:
+                let alternatives = PIIItem.generateAlternatives(for: .custom, original: value)
+                let selectedId = alternatives.first?.id ?? UUID()
+                items.append(PIIItem(type: .custom, range: tokenRange, originalText: value,
+                                     alternatives: alternatives, selectedAlternativeId: selectedId,
+                                     confidence: 0.80, isMasked: true))
+            case .placeName:
+                let alternatives = PIIItem.generateAlternatives(for: .address, original: value)
+                let selectedId = alternatives.first?.id ?? UUID()
+                items.append(PIIItem(type: .address, range: tokenRange, originalText: value,
+                                     alternatives: alternatives, selectedAlternativeId: selectedId,
+                                     confidence: 0.75, isMasked: true))
+            default:
+                break
+            }
+            return true
+        }
+        return items
     }
 
     /// Detect personal names that appear immediately after email signature openers
@@ -237,20 +216,22 @@ final class NLTaggerDetector {
             deduped.append(deduplicatedItem)
         }
 
-        // Step 3: Remove overlapping items — sort by start position, keep first of any
-        // overlapping pair. This prevents double-detection (e.g. a number matched by
-        // both the phone regex and SSN regex simultaneously).
+        // Step 3: Remove overlapping items — sort by start position. When two items
+        // overlap, keep the one with higher confidence (not just the first found).
         let sortedByStart = deduped.sorted { $0.range.lowerBound < $1.range.lowerBound }
         var result: [PIIItem] = []
-        var lastUpperBound: String.Index? = nil
+        var lastKeptIndex: Int? = nil
 
         for item in sortedByStart {
-            if let last = lastUpperBound, item.range.lowerBound < last {
-                // Overlapping with the previous kept item — skip
+            if let idx = lastKeptIndex, item.range.lowerBound < result[idx].range.upperBound {
+                // Overlapping — replace previous with current if current has higher confidence
+                if item.confidence > result[idx].confidence {
+                    result[idx] = item
+                }
                 continue
             }
             result.append(item)
-            lastUpperBound = item.range.upperBound
+            lastKeptIndex = result.count - 1
         }
 
         return result

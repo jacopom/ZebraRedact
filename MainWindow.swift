@@ -339,24 +339,6 @@ struct MainWindow: View {
                         .fill(Color.white.opacity(0.06))
                         .frame(height: 1)
 
-                    // Masking level
-                    darkSection(title: "Masking") {
-                        Picker("", selection: Binding(
-                            get: { detector.maskingLevel },
-                            set: { detector.setMaskingLevel($0, originalText: inputText) }
-                        )) {
-                            ForEach(MaskingLevel.allCases) { level in
-                                Text(level.rawValue).tag(level)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                    }
-
-                    Rectangle()
-                        .fill(Color.white.opacity(0.06))
-                        .frame(height: 1)
-
                     // Redacted Items
                     if !detector.detectedItems.isEmpty {
                         Rectangle()

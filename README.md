@@ -4,7 +4,7 @@ Local PII redaction for LLM prompts. Strip sensitive data before sharing text wi
 
 ## Download
 
-[**Download ZebraRedact →**](https://github.com/YOUR_USERNAME/zebraredact/releases/latest)
+[**Download ZebraRedact →**](https://github.com/jacopom/zebraredact/releases/latest)
 
 **Requires macOS 15.0+**
 

@@ -7,21 +7,23 @@
 A native macOS app that replaces sensitive data with reversible privacy tokens before it reaches any AI service. Detection runs entirely on-device using built-in macOS APIs — no third-party libraries, no cloud calls, no data leaves your machine.
 
 ```
-Before  →  Write an offer email to James Okonkwo
-            (j.okonkwo@gmail.com, (646) 555-0193). He's currently a
-            senior engineer at Stripe (4 years) and has a competing
-            offer from Notion at $158k. We're at $165k + 0.3% equity,
-            start March 10. His recruiter was Sarah Park. He asked
-            about remote policy and visa sponsorship — confirm both
-            are covered. He seemed genuinely excited — keep it warm.
+Before  →  Draft a proposal intro for Marco Ferretti
+            (m.ferretti@luxuryhotels.it, +39 02 8934 5512), CTO at
+            Bellariva Group (14-hotel chain, Milan). We met at
+            HospitalityTech Rome on March 4 — he was interested but
+            mentioned Salesforce is also pitching. Offering €24k/year
+            analytics. He wants GDPR compliance and monthly reports;
+            left previous vendor DataSight over repeated outages.
+            Deadline end of month — make it personal, not boilerplate.
 
-After   →  Write an offer email to [NAME_A1B2]
-            ([EMAIL_C3D4], [PHONE_E5F6]). He's currently a
-            senior engineer at [ORG_G7H8] (4 years) and has a competing
-            offer from [ORG_I9J0] at $158k. We're at $165k + 0.3% equity,
-            start March 10. His recruiter was [NAME_J1K2]. He asked
-            about remote policy and visa sponsorship — confirm both
-            are covered. He seemed genuinely excited — keep it warm.
+After   →  Draft a proposal intro for [NAME_A1B2]
+            ([EMAIL_C3D4], [PHONE_E5F6]), CTO at
+            [ORG_G7H8] (14-hotel chain, Milan). We met at
+            HospitalityTech Rome on March 4 — he was interested but
+            mentioned [ORG_I9J0] is also pitching. Offering €24k/year
+            analytics. He wants GDPR compliance and monthly reports;
+            left previous vendor [ORG_J1K2] over repeated outages.
+            Deadline end of month — make it personal, not boilerplate.
 ```
 
 Paste the redacted version into any AI assistant. When the response comes back, use the **Restore** tab to swap every token back to the original value.

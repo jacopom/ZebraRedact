@@ -2,6 +2,8 @@
 
 **Redact before you send. Restore when you're done.**
 
+![ZebraRedact in action](Assets/zebraredact_2.1x.gif)
+
 A native macOS app that replaces sensitive data with reversible privacy tokens before it reaches any AI service. Detection runs entirely on-device using built-in macOS APIs — no third-party libraries, no cloud calls, no data leaves your machine.
 
 ```

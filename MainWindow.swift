@@ -256,7 +256,26 @@ struct MainWindow: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
 
-                    // PII Types (collapsible)
+                    // Detection Mode
+                    darkSection(title: "Mode") {
+                        Picker("", selection: Binding(
+                            get: { detector.detectionMode },
+                            set: { detector.setDetectionMode($0, originalText: inputText) }
+                        )) {
+                            ForEach(DetectionMode.allCases) { mode in
+                                Text(mode.rawValue).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                    }
+
+                    Rectangle()
+                        .fill(Color.white.opacity(0.06))
+                        .frame(height: 1)
+
+                    // PII Types (collapsible) — hidden in manual mode
+                    if detector.detectionMode == .automatic {
                     VStack(alignment: .leading, spacing: 0) {
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.15)) { piiTypesExpanded.toggle() }
@@ -315,6 +334,7 @@ struct MainWindow: View {
                             .padding(.bottom, 10)
                         }
                     }
+                    } // end if detectionMode == .automatic
 
                     Rectangle()
                         .fill(Color.white.opacity(0.06))
@@ -340,11 +360,7 @@ struct MainWindow: View {
                         .frame(height: 1)
 
                     // Redacted Items
-                    if !detector.detectedItems.isEmpty {
-                        Rectangle()
-                            .fill(Color.white.opacity(0.06))
-                            .frame(height: 1)
-
+                    if !uniqueRedactedItems.isEmpty {
                         darkSection(title: "Redacted Items") {
                             VStack(alignment: .leading, spacing: 1) {
                                 // Deduplicate by originalText — multiple occurrences of the same
@@ -479,7 +495,7 @@ struct MainWindow: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                if detector.detectedItems.isEmpty && !detector.isProcessing {
+                if detector.detectedItems.isEmpty && !detector.isProcessing && detector.detectionMode == .automatic {
                     noDetectionsState
                 }
             }
@@ -500,12 +516,24 @@ struct MainWindow: View {
 
     private var noDetectionsState: some View {
         VStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 36))
-                .foregroundColor(Color.green)
-            Text("No PII detected")
-                .font(.callout)
-                .foregroundColor(.secondary)
+            if detector.detectionMode == .manual {
+                Image(systemName: "hand.tap")
+                    .font(.system(size: 36))
+                    .foregroundColor(Color.secondary.opacity(0.5))
+                Text("Manual mode")
+                    .font(.callout.weight(.medium))
+                    .foregroundColor(.secondary)
+                Text("Right-click text to tag items")
+                    .font(.caption)
+                    .foregroundColor(.secondary.opacity(0.7))
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 36))
+                    .foregroundColor(Color.green)
+                Text("No PII detected")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -629,11 +657,12 @@ struct MainWindow: View {
         inputText.split(separator: " ").count
     }
 
-    /// Deduplicated items for sidebar display — one entry per unique original text.
-    /// All occurrences are still redacted; this just avoids showing "Maya" twice.
+    /// Deduplicated masked items for sidebar display — one entry per unique original text.
     private var uniqueRedactedItems: [PIIItem] {
         var seen = Set<String>()
-        return detector.detectedItems.filter { seen.insert($0.originalText.lowercased()).inserted }
+        return detector.detectedItems
+            .filter { $0.isMasked }
+            .filter { seen.insert($0.originalText.lowercased()).inserted }
     }
 
     private var piiTypeSummaryLabel: String {

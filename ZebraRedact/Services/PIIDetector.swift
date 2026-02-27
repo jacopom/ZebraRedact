@@ -1,6 +1,14 @@
 import Foundation
 import Combine
 
+// MARK: - DetectionMode
+
+enum DetectionMode: String, CaseIterable, Identifiable {
+    case automatic = "Automatic"
+    case manual    = "Manual"
+    var id: String { rawValue }
+}
+
 // MARK: - Errors
 
 enum PIIError: LocalizedError {
@@ -26,6 +34,7 @@ final class PIIDetector: ObservableObject {
     @Published var privacyScore: Int = 100
     @Published var isProcessing: Bool = false
     @Published var enabledCategories: Set<PIIType> = Set(PIIType.allCases)
+    @Published var detectionMode: DetectionMode = .automatic
     /// Maps each item ID → the text actually placed in redactedText for that item
     @Published var appliedReplacements: [UUID: String] = [:]
 
@@ -59,8 +68,14 @@ final class PIIDetector: ObservableObject {
         // Preserve manual tags across re-scans: save them before detection runs.
         let previousManualItems = detectedItems.filter { $0.isManual }
 
-        let allItems = detector.detect(in: text)
-        let filtered = allItems.filter { enabledCategories.contains($0.type) }
+        // In manual mode skip auto-detection — only re-anchor existing manual tags.
+        let filtered: [PIIItem]
+        if detectionMode == .manual {
+            filtered = []
+        } else {
+            let allItems = detector.detect(in: text)
+            filtered = allItems.filter { enabledCategories.contains($0.type) }
+        }
 
         // Re-anchor surviving manual items
         var preserved: [PIIItem] = []
@@ -81,6 +96,24 @@ final class PIIDetector: ObservableObject {
             await MainActor.run {
                 isProcessing = false
             }
+        }
+    }
+
+    /// Switch detection mode. Switching to manual clears all auto-detected items;
+    /// switching to automatic re-runs a full scan.
+    func setDetectionMode(_ mode: DetectionMode, originalText: String) {
+        detectionMode = mode
+        if mode == .manual {
+            let manualItems = detectedItems.filter { $0.isManual }
+            detectedItems = manualItems
+            let (text, applied) = buildMaskedText(from: originalText,
+                                                   items: manualItems,
+                                                   replacements: appliedReplacements)
+            redactedText = text
+            appliedReplacements = applied
+            privacyScore = calculateScore(items: manualItems)
+        } else {
+            scan(text: originalText)
         }
     }
 

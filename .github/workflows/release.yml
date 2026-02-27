@@ -9,6 +9,8 @@ jobs:
   build-dmg:
     name: Build DMG
     runs-on: macos-15
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout

@@ -2,6 +2,23 @@
 
 Local PII redaction for LLM prompts. Strip sensitive data before sharing text with AI — on-device, zero network calls.
 
+## Download
+
+[**Download ZebraRedact →**](https://github.com/YOUR_USERNAME/zebraredact/releases/latest)
+
+**Requires macOS 15.0+**
+
+### Install (unsigned build)
+
+1. Open the `.dmg` and drag **ZebraRedact** to your Applications folder.
+2. First launch: macOS will block it with an "unverified developer" warning.
+3. Go to **System Settings → Privacy & Security** → scroll down → click **"Open Anyway"**.
+
+Or from Terminal:
+```bash
+xattr -rd com.apple.quarantine /Applications/ZebraRedact.app
+```
+
 ## Requirements
 
 - macOS 15.0+

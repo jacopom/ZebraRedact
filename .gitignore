@@ -3,3 +3,4 @@ xcuserdata/
 .DS_Store
 .env
 PRODUCT_SPEC.md
+build/

@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-dmg:
+    name: Build DMG
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Build DMG
+        run: make dmg
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/ZebraRedact.dmg
+          generate_release_notes: true
+          body: |
+            **Requires macOS 15.0+**
+
+            ### Install (unsigned build)
+            1. Open the `.dmg` and drag **ZebraRedact** to your Applications folder.
+            2. First launch: macOS will block it ("unverified developer").
+            3. Go to **System Settings → Privacy & Security** → scroll down → click **"Open Anyway"**.
+
+            Or from Terminal:
+            ```bash
+            xattr -rd com.apple.quarantine /Applications/ZebraRedact.app
+            ```

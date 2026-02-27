@@ -1,7 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 
-/// Manages the global ⌥⌘G hotkey using Carbon API (no external dependency).
+/// Manages the global ⌥⌘Z hotkey using Carbon API (no external dependency).
 final class HotkeyManager {
     static let shared = HotkeyManager()
 
@@ -38,12 +38,12 @@ final class HotkeyManager {
             &eventHandler
         )
 
-        // ⌥⌘G = keyCode 5 (G), modifiers: optionKey + cmdKey
-        let hotkeyID = EventHotKeyID(signature: OSType(0x4743_4C50), id: 1) // "GCLP"
+        // ⌥⌘Z = keyCode 6 (Z), modifiers: optionKey + cmdKey
+        let hotkeyID = EventHotKeyID(signature: OSType(0x5A43_4C50), id: 1) // "ZCLP"
         let modifiers = UInt32(optionKey | cmdKey)
 
         RegisterEventHotKey(
-            UInt32(kVK_ANSI_G),
+            UInt32(kVK_ANSI_Z),
             modifiers,
             hotkeyID,
             GetApplicationEventTarget(),

@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
 
-        let openItem = NSMenuItem(title: "Open ZebraRedact   ⌥⌘G", action: #selector(triggerOverlay), keyEquivalent: "")
+        let openItem = NSMenuItem(title: "Open ZebraRedact   ⌥⌘Z", action: #selector(triggerOverlay), keyEquivalent: "")
         openItem.target = self
         menu.addItem(openItem)
 

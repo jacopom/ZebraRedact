@@ -233,7 +233,7 @@ struct MainWindow: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .padding(.horizontal, 12)
-        .padding(.bottom, 12)
+        .padding(.vertical, 12)
     }
 
     private var rehydrateContent: some View {
@@ -246,7 +246,7 @@ struct MainWindow: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 12)
-        .padding(.bottom, 12)
+        .padding(.vertical, 12)
     }
 
     // MARK: - Sidebar (right, dark)

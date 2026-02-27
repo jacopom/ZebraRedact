@@ -484,12 +484,12 @@ struct MainWindow: View {
                     items: detector.detectedItems,
                     onTokenClick: { item in selectedToken = item },
                     onManualTag: { nsRange, piiType in
-                        let nsString = detector.redactedText as NSString
                         guard nsRange.location != NSNotFound, nsRange.length > 0 else { return }
-                        let selectedText = nsString.substring(with: nsRange)
-                        guard !selectedText.isEmpty,
-                              let range = inputText.range(of: selectedText, options: .literal) else { return }
-                        try? detector.addManualTag(range: range, type: piiType, in: inputText)
+                        detector.addManualTagMergingOverlaps(
+                            redactedNSRange: nsRange,
+                            type: piiType,
+                            inputText: inputText
+                        )
                     },
                     appliedTexts: detector.appliedReplacements
                 )

@@ -231,6 +231,98 @@ final class PIIDetector: ObservableObject {
 
     // MARK: - Manual Tagging
 
+    /// Maps an NSRange in redactedText back to a Range<String.Index> in the original inputText.
+    /// If the selection overlaps a token, the boundaries snap to that token's input range.
+    func inputRange(forRedactedNSRange nsRange: NSRange, inputText: String) -> Range<String.Index>? {
+        guard nsRange.length > 0 else { return nil }
+
+        let sorted = detectedItems
+            .filter { $0.isMasked }
+            .sorted { $0.range.lowerBound < $1.range.lowerBound }
+
+        let selStart = nsRange.location
+        let selEnd   = nsRange.location + nsRange.length
+
+        var redOff    = 0
+        var inpCursor = inputText.startIndex
+        var mappedStart: String.Index? = nil
+        var mappedEnd:   String.Index? = nil
+
+        for item in sorted {
+            guard item.range.upperBound > inpCursor else { continue }
+
+            // Plain text segment before this token
+            if inpCursor < item.range.lowerBound {
+                let plain      = String(inputText[inpCursor..<item.range.lowerBound])
+                let plainNSLen = (plain as NSString).length
+
+                if mappedStart == nil && selStart >= redOff && selStart < redOff + plainNSLen,
+                   let r = Range(NSRange(location: selStart - redOff, length: 0), in: plain) {
+                    let dist = plain.distance(from: plain.startIndex, to: r.lowerBound)
+                    mappedStart = inputText.index(inpCursor, offsetBy: dist)
+                }
+                if mappedEnd == nil && selEnd > redOff && selEnd <= redOff + plainNSLen,
+                   let r = Range(NSRange(location: selEnd - redOff, length: 0), in: plain) {
+                    let dist = plain.distance(from: plain.startIndex, to: r.lowerBound)
+                    mappedEnd = inputText.index(inpCursor, offsetBy: dist)
+                }
+                redOff    += plainNSLen
+                inpCursor  = item.range.lowerBound
+            }
+
+            // Token segment — snap selection boundaries to input token boundaries
+            let tokenText  = appliedReplacements[item.id] ?? item.token
+            let tokenNSLen = (tokenText as NSString).length
+
+            if mappedStart == nil && selStart >= redOff && selStart < redOff + tokenNSLen {
+                mappedStart = item.range.lowerBound
+            }
+            if mappedEnd == nil && selEnd > redOff && selEnd <= redOff + tokenNSLen {
+                mappedEnd = item.range.upperBound
+            }
+
+            redOff    += tokenNSLen
+            inpCursor  = item.range.upperBound
+        }
+
+        // Trailing plain text after the last token
+        if inpCursor <= inputText.endIndex {
+            let plain      = String(inputText[inpCursor...])
+            let plainNSLen = (plain as NSString).length
+
+            if mappedStart == nil && selStart >= redOff && selStart <= redOff + plainNSLen,
+               let r = Range(NSRange(location: selStart - redOff, length: 0), in: plain) {
+                let dist = plain.distance(from: plain.startIndex, to: r.lowerBound)
+                mappedStart = inputText.index(inpCursor, offsetBy: dist)
+            }
+            if mappedEnd == nil && selEnd > redOff && selEnd <= redOff + plainNSLen,
+               let r = Range(NSRange(location: selEnd - redOff, length: 0), in: plain) {
+                let dist = plain.distance(from: plain.startIndex, to: r.lowerBound)
+                mappedEnd = inputText.index(inpCursor, offsetBy: dist)
+            }
+        }
+
+        guard let start = mappedStart, let end = mappedEnd, start <= end else { return nil }
+        return start..<end
+    }
+
+    /// Tag a selection given as an NSRange in redactedText, absorbing any overlapping
+    /// existing items into the new tag instead of throwing a rangeOverlap error.
+    func addManualTagMergingOverlaps(redactedNSRange nsRange: NSRange,
+                                     type: PIIType,
+                                     inputText: String) {
+        guard let range = inputRange(forRedactedNSRange: nsRange, inputText: inputText) else { return }
+
+        // Remove existing items whose input ranges overlap with the target range
+        let toRemove = detectedItems.filter {
+            range.lowerBound < $0.range.upperBound && $0.range.lowerBound < range.upperBound
+        }
+        for item in toRemove { appliedReplacements.removeValue(forKey: item.id) }
+        detectedItems.removeAll { item in toRemove.contains { $0.id == item.id } }
+
+        try? addManualTag(range: range, type: type, in: inputText)
+    }
+
     func addManualTag(range: Range<String.Index>, type: PIIType, in text: String) throws {
         guard range.lowerBound >= text.startIndex && range.upperBound <= text.endIndex else {
             throw PIIError.invalidRange

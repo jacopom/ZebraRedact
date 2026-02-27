@@ -74,6 +74,8 @@ final class NLTaggerDetector {
             guard let tokenRange = Range(nsRange, in: originalText) else { return true }
 
             let value = String(originalText[tokenRange])
+            // Skip very short tokens — likely partial words being typed (e.g. "Lu" while typing "Lucas")
+            guard value.count >= 3 else { return true }
             let normalized = value.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
             guard !Self.entityBlocklist.contains(normalized) else { return true }
 
@@ -91,11 +93,26 @@ final class NLTaggerDetector {
                                      alternatives: alternatives, selectedAlternativeId: selectedId,
                                      confidence: 0.80, isMasked: true))
             case .placeName:
-                let alternatives = PIIItem.generateAlternatives(for: .address, original: value)
-                let selectedId = alternatives.first?.id ?? UUID()
-                items.append(PIIItem(type: .address, range: tokenRange, originalText: value,
-                                     alternatives: alternatives, selectedAlternativeId: selectedId,
-                                     confidence: 0.75, isMasked: true))
+                // Single-word, all-letter, title-case tokens are almost always personal names
+                // misclassified by NLTagger (e.g. "Lucas", "Luke", "Jordan", "Austin").
+                // Real place names in personal documents are either multi-word ("New York")
+                // or caught by the address regex detector.
+                let isSingleWord = !value.contains(" ")
+                let isAllLetters = value.allSatisfy { $0.isLetter }
+                let isTitleCase  = value.first?.isUppercase == true
+                if isSingleWord && isAllLetters && isTitleCase && value.count <= 15 {
+                    let alternatives = PIIItem.generateAlternatives(for: .name, original: value)
+                    let selectedId = alternatives.first?.id ?? UUID()
+                    items.append(PIIItem(type: .name, range: tokenRange, originalText: value,
+                                         alternatives: alternatives, selectedAlternativeId: selectedId,
+                                         confidence: 0.75, isMasked: true))
+                } else {
+                    let alternatives = PIIItem.generateAlternatives(for: .address, original: value)
+                    let selectedId = alternatives.first?.id ?? UUID()
+                    items.append(PIIItem(type: .address, range: tokenRange, originalText: value,
+                                         alternatives: alternatives, selectedAlternativeId: selectedId,
+                                         confidence: 0.75, isMasked: true))
+                }
             default:
                 break
             }

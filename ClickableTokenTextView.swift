@@ -171,6 +171,7 @@ struct ClickableTokenTextView: NSViewRepresentable {
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
+        scrollView.scrollerStyle = .overlay
         scrollView.borderType = .noBorder
 
         let textView = TokenizableTextView()

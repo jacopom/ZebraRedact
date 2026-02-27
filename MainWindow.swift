@@ -139,6 +139,9 @@ struct MainWindow: View {
         }
         .frame(minWidth: 820, minHeight: 540)
         .background(Color(NSColor.windowBackgroundColor))
+        .onChange(of: inputText) { _, newText in
+            detector.scan(text: newText)
+        }
     }
 
     // MARK: - Top Bar
@@ -449,17 +452,6 @@ struct MainWindow: View {
                 .allowsHitTesting(true)
             }
         }
-        .overlay(alignment: .topTrailing) {
-            if !inputText.isEmpty {
-                Button(action: { inputText = ""; detector.detectedItems = [] }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                        .padding(10)
-                }
-                .buttonStyle(.plain)
-            }
-        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -467,29 +459,30 @@ struct MainWindow: View {
 
     private var outputPanel: some View {
         ZStack {
-            Group {
-                if inputText.isEmpty {
-                    Color.clear
-                } else if detector.detectedItems.isEmpty && !detector.isProcessing {
+            if inputText.isEmpty {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ClickableTokenTextView(
+                    text: detector.redactedText.isEmpty ? inputText : detector.redactedText,
+                    items: detector.detectedItems,
+                    onTokenClick: { item in selectedToken = item },
+                    onManualTag: { nsRange, piiType in
+                        let nsString = detector.redactedText as NSString
+                        guard nsRange.location != NSNotFound, nsRange.length > 0 else { return }
+                        let selectedText = nsString.substring(with: nsRange)
+                        guard !selectedText.isEmpty,
+                              let range = inputText.range(of: selectedText, options: .literal) else { return }
+                        try? detector.addManualTag(range: range, type: piiType, in: inputText)
+                    },
+                    appliedTexts: detector.appliedReplacements
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                if detector.detectedItems.isEmpty && !detector.isProcessing {
                     noDetectionsState
-                } else {
-                    ClickableTokenTextView(
-                        text: detector.redactedText,
-                        items: detector.detectedItems,
-                        onTokenClick: { item in selectedToken = item },
-                        onManualTag: { nsRange, piiType in
-                            let nsString = detector.redactedText as NSString
-                            guard nsRange.location != NSNotFound, nsRange.length > 0 else { return }
-                            let selectedText = nsString.substring(with: nsRange)
-                            guard !selectedText.isEmpty,
-                                  let range = inputText.range(of: selectedText, options: .literal) else { return }
-                            try? detector.addManualTag(range: range, type: piiType, in: inputText)
-                        },
-                        appliedTexts: detector.appliedReplacements
-                    )
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             if detector.isProcessing && !inputText.isEmpty {
                 VStack(spacing: 8) {
@@ -1038,12 +1031,14 @@ struct InlineRehydrateView: View {
                 .padding(.top, 14)
                 .padding(.bottom, 8)
 
-                TextEditor(text: $pastedText)
-                    .font(.system(.body, design: .monospaced))
-                    .padding(.horizontal, 10)
-                    .onChange(of: pastedText) { _, text in
+                InputTextView(
+                    text: $pastedText,
+                    highlightRange: nil,
+                    highlightColor: .clear,
+                    onTextChange: { text in
                         tokenCount = TokenMappingStore.shared.rehydrationCount(in: text)
                     }
+                )
             }
 
             Divider()
@@ -1334,6 +1329,8 @@ struct InputTextView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
+        scrollView.autohidesScrollers = true
+        scrollView.scrollerStyle = .overlay
         let textView = scrollView.documentView as! NSTextView
         textView.isEditable = true
         textView.isSelectable = true

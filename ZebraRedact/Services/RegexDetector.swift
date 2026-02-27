@@ -17,6 +17,10 @@ final class RegexDetector {
             (.phone, #"(?<!\d)(?:\+?1[\s\-\.]?)?(?:\(\d{3}\)|\d{3})[\s\-\.]\d{3}[\s\-\.]\d{4}(?![\-\d])"#),
             // Phone — International with explicit + prefix: +44 20 7946 0958, +33 6 12 34 56 78
             (.phone, #"\+[1-9]\d{0,2}[\s\-]\d{1,4}(?:[\s\-]\d{2,4}){1,4}\b"#),
+            // Phone — bare 10–11 digits (European mobile without formatting):
+            // Italian 3280172634, French 0612345678, UK 07700123456, etc.
+            // Excludes longer sequences (credit cards=16, account numbers=12+)
+            (.phone, #"(?<!\d)\d{10,11}(?!\d)"#),
             // Credit Card (Visa, MC, Amex, Discover)
             (.creditCard, #"\b(?:4\d{3}|5[1-5]\d{2}|3[47]\d{2}|6(?:011|5\d{2}))[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b"#),
             // SSN: NNN-NN-NNNN (dash-separated, requires dashes, not optional).

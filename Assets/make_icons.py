@@ -1,5 +1,5 @@
-from PIL import Image
-import shutil, os
+from PIL import Image, ImageDraw
+import os
 
 SRC = "zebra_source.png"
 THRESHOLD = 240
@@ -15,7 +15,7 @@ for y in range(h):
         if r > THRESHOLD and g > THRESHOLD and b > THRESHOLD:
             px[x, y] = (r, g, b, 0)
 
-# Full-body master (square-padded to 1024)
+# Full-body master
 side = max(w, h)
 full_padded = Image.new("RGBA", (side, side), (0, 0, 0, 0))
 full_padded.paste(img, ((side - w) // 2, (side - h) // 2))
@@ -23,27 +23,61 @@ full_1024 = full_padded.resize((1024, 1024), Image.LANCZOS)
 full_1024.save("zebra_full_1024.png")
 print("Saved zebra_full_1024.png")
 
-# Head crop: top ~42% (hat + face), then square-padded with 15% padding each side
+# Head crop: top 42% of source, then tight-crop to actual content bounding box
+# (removes transparent margins so the wide/flat crop scales up properly)
 crop_bottom = int(h * 0.42)
-head = img.crop((0, 0, w, crop_bottom))
-head_side = w   # head crop is already full width
+head_raw = img.crop((0, 0, w, crop_bottom))
+bbox = head_raw.getbbox()   # tight bounds around non-transparent pixels
+head = head_raw.crop(bbox) if bbox else head_raw
 
-# ~12% padding each side → artwork fills ~81% of canvas (Apple HIG spec)
-PAD = 0.12
-padded_side = int(head_side * (1 + 2 * PAD))
-head_sq = Image.new("RGBA", (padded_side, padded_side), (18, 18, 22, 255))
-paste_x = int(head_side * PAD)          # correct: margin = PAD * head_side (not padded_side)
-paste_y = int((padded_side - crop_bottom) / 2)
-head_sq.paste(head, (paste_x, paste_y), head)
+# ── ICON GEOMETRY (Apple HIG) ─────────────────────────────────────────────
+# Total canvas : 1024 × 1024  (transparent)
+# Squircle tile:  824 × 824  centred → 100 px transparent border each side
+# Squircle radius: 22.5 % of tile = 185 px
+# Zebra padding inside tile: 8 % each side → artwork ~84 % of tile
 
-head_1024 = head_sq.resize((1024, 1024), Image.LANCZOS)
-head_1024.save("zebra_head_1024.png")
+CANVAS   = 1024
+TILE     = 824          # Apple HIG artwork area
+BORDER   = (CANVAS - TILE) // 2   # 100 px transparent bleed each side
+
+INNER_PAD = 0.04        # 4 % padding inside the squircle tile
+art_size  = int(TILE * (1 - 2 * INNER_PAD))   # ≈ 692 px
+
+# Scale so the zebra HEIGHT fills art_size; the wide hat brim will overflow
+# horizontally and get clipped naturally by the squircle mask — giving a bold,
+# full-height icon rather than a tiny wide-and-short fit-in-box result.
+scale = art_size / head.size[1]
+z_w = int(head.size[0] * scale)
+z_h = art_size
+zebra = head.resize((z_w, z_h), Image.LANCZOS)
+
+# Build squircle tile (white background)
+tile = Image.new("RGBA", (TILE, TILE), (255, 255, 255, 255))
+paste_x = (TILE - z_w) // 2
+paste_y = TILE - z_h          # anchor to bottom edge
+tile.paste(zebra, (paste_x, paste_y), zebra)
+
+# Squircle mask baked in (macOS debug builds don't auto-apply it)
+def squircle_mask(size):
+    m = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(m).rounded_rectangle(
+        [0, 0, size - 1, size - 1],
+        radius=int(size * 0.225),
+        fill=255
+    )
+    return m
+
+tile.putalpha(squircle_mask(TILE))
+
+# Compose: place tile on transparent 1024 × 1024 canvas
+canvas_img = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
+canvas_img.paste(tile, (BORDER, BORDER), tile)
+canvas_img.save("zebra_head_1024.png")
 print("Saved zebra_head_1024.png")
 
-# App icon sizes (from head crop)
-SIZES = [16, 32, 64, 128, 256, 512, 1024]
-for s in SIZES:
-    head_1024.resize((s, s), Image.LANCZOS).save(f"icon_{s}.png")
+# Export all icon sizes (no extra per-size squircle; already baked)
+for s in [16, 32, 64, 128, 256, 512, 1024]:
+    canvas_img.resize((s, s), Image.LANCZOS).save(f"icon_{s}.png")
     print(f"Saved icon_{s}.png")
 
 print("\nAll done!")

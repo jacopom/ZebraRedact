@@ -32,14 +32,23 @@ final class NLTaggerDetector {
 
         var items: [PIIItem] = []
 
-        // Use NLTagger to detect named entities (people, organizations, places)
+        // Run NLTagger on the capitalized form so lowercase words like "jacopo"
+        // or "milano" are recognised as proper nouns. Capitalization preserves
+        // character offsets (no length change), so ranges map back to `text` unchanged.
+        let taggerInput = text.capitalized
+
         let tagger = NLTagger(tagSchemes: [.nameType])
-        tagger.string = text
+        tagger.string = taggerInput
 
         let options: NLTagger.Options = [.omitPunctuation, .omitWhitespace, .joinNames]
 
-        tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word, scheme: .nameType, options: options) { tag, tokenRange in
+        tagger.enumerateTags(in: taggerInput.startIndex..<taggerInput.endIndex, unit: .word, scheme: .nameType, options: options) { tag, capitalizedRange in
             guard let tag = tag else { return true }
+            // Map the range from taggerInput back to original text via UTF-16 offsets.
+            // Capitalization is length-preserving for ASCII/Latin characters so the
+            // NSRange offsets are identical between taggerInput and text.
+            let nsRange = NSRange(capitalizedRange, in: taggerInput)
+            guard let tokenRange = Range(nsRange, in: text) else { return true }
 
             let value = String(text[tokenRange])
             // Skip document labels, legal suffixes, and financial acronyms

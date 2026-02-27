@@ -18,7 +18,7 @@ enum ZebraRedactConstants {
 
     // MARK: - Hotkeys
     enum Hotkeys {
-        static let hotkey = "⌥⌘G"
+        static let hotkey = "⌥⌘Z"
         static let applyShortcut = "⌘⏎"
         static let cancelShortcut = "⎋"
     }

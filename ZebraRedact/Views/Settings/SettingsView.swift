@@ -39,7 +39,7 @@ struct GeneralSettingsTab: View {
             }
 
             Section("Keyboard Shortcuts") {
-                LabeledContent("Summon ZebraRedact", value: "⌥⌘G")
+                LabeledContent("Summon ZebraRedact", value: "⌥⌘Z")
                 LabeledContent("Apply & Copy", value: "⌘Return")
                 LabeledContent("Dismiss", value: "Escape")
             }

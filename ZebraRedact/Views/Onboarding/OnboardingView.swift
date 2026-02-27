@@ -76,7 +76,7 @@ struct OnboardingView: View {
                 .foregroundStyle(ZebraTheme.secondaryText)
 
             VStack(alignment: .leading, spacing: 8) {
-                featureRow(icon: "keyboard", text: "Press ⌥⌘G from anywhere to summon")
+                featureRow(icon: "keyboard", text: "Press ⌥⌘Z from anywhere to summon")
                 featureRow(icon: "eye.slash.fill", text: "Emails, phones, cards highlighted & masked")
                 featureRow(icon: "lock.shield.fill", text: "100% local — nothing leaves your Mac")
             }
@@ -152,7 +152,7 @@ struct OnboardingView: View {
             Text("You're all set!")
                 .font(.system(.title, design: .rounded, weight: .bold))
 
-            Text("Press ⌥⌘G anytime to open ZebraRedact.")
+            Text("Press ⌥⌘Z anytime to open ZebraRedact.")
                 .font(.title3)
                 .foregroundStyle(ZebraTheme.secondaryText)
 

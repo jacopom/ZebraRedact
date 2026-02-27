@@ -19,13 +19,10 @@ archive:
 	  archive \
 	  -archivePath $(ARCHIVE)
 
-## Export the .app from the archive (unsigned, method=none)
+## Copy the .app directly from the xcarchive (avoids exportArchive signing requirements)
 export: archive
-	$(XCODE) xcodebuild \
-	  -exportArchive \
-	  -archivePath $(ARCHIVE) \
-	  -exportPath $(EXPORT) \
-	  -exportOptionsPlist ExportOptions.plist
+	mkdir -p $(EXPORT)
+	cp -R $(ARCHIVE)/Products/Applications/ZebraRedact.app $(EXPORT)/
 
 ## Package the .app into a drag-to-install DMG
 ## Requires: brew install create-dmg

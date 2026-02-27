@@ -6,7 +6,6 @@ Local PII redaction for LLM prompts. Strip sensitive data before sharing text wi
 
 - macOS 15.0+
 - Xcode 16+
-- Apple Silicon (M1+) recommended
 
 ## Build & Run
 
@@ -23,78 +22,77 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 ## Features
 
-### Redaction Modes
-
-| Mode | Description |
-|------|-------------|
-| **Tokens** | Replace PII with stable tokens like `[NAME_A1B2]` |
-| **Fake Data** | Substitute realistic fictional values (semantic replacements) |
-| **AI Classify** | On-device LLM augments detection and generates context-aware fakes |
-
 ### Detection
 
-- **NLTagger** — names, organizations, locations (Apple NLP)
-- **Regex** — email, phone, credit card, SSN, IPv4, API keys
-- **LLM Augmentation** — catches entities NLTagger/regex miss (optional, on-device only)
+| Detector | Entities |
+|----------|----------|
+| **NLTagger** | Names, organisations, locations (Apple on-device NLP) |
+| **Regex** | Email, phone (US, international, European bare 10–11 digit), credit card, SSN, IPv4, API keys |
 
-### LLM Backends (LLM Classify mode)
+All detection is local — no data leaves the device.
 
-Priority order, all on-device:
+### Redaction
 
-1. **Apple Intelligence** (`FoundationModels`, macOS 26+)
-2. **Ollama** — llama3.2:3b / phi4-mini / gemma3 / mistral7b via `localhost:11434`
-3. **MLX** — downloadable model via ModelManager
-4. **Semantic fallback** — curated fake-data pools (always available)
+Detected items are replaced with stable typed tokens: `[NAME_A1B2]`, `[EMAIL_C3D4]`, `[PHONE_E5F6]`, etc.
+
+- Same entity always gets the same token across the document
+- Click any token in the output panel to pick an alternative or restore the original
+- Right-click selected text in the output panel to manually tag anything auto-detection missed
+
+### Restore Tab
+
+Paste an LLM response that contains tokens back into the Restore tab to get the original values rehydrated inline.
+
+### Quick Send
+
+The **Copy Redacted** button copies the sanitised text to the clipboard. The dropdown next to it lets you:
+- Copy with a safety-prompt prefix that instructs the LLM to preserve tokens
+- Open ChatGPT, Claude, Perplexity, or Grok directly in the browser with an auto-paste (requires Accessibility permission)
 
 ### UI
 
-- Three-panel layout: collapsible sidebar + clear text + redacted text
-- Sidebar: PII type toggles, domain presets (GDPR, HIPAA, CCPA, Finance, Education, Transportation), redaction mode, AI model picker
-- Click any token in the output to choose an alternative replacement
-- Right-click plain text in the output to manually tag undetected PII
-- "Restore original" from the token dropdown to untokenize a mistakenly tagged word
-- Re-hydrate sheet: paste LLM response with tokens back → restore originals
-- Copy with optional safety prompt prefix for LLMs
-- Confidence quality indicator (task completability, hallucination risk, coherence)
+- Twin-panel layout: input on the left, redacted output on the right
+- Collapsible dark sidebar: PII type toggles, domain preset picker, redacted-items list
+- Domain presets: GDPR, HIPAA, CCPA, Finance, Education, Transportation
+- Spoiler-style token overlay: tokens shown as censored bars, hover to reveal the token ID
+- Confidence indicator in the bottom bar (task completability, hallucination risk, coherence)
+- Menu bar icon + global hotkey **⌥⌘G** to bring the window forward
+- **⌘⇧C** to copy the redacted text from anywhere
 
 ## Architecture
 
 ```
 ZebraRedact/
-├── ZebraRedact/                   # Xcode target sources
+├── ZebraRedact/                    # Xcode target sources
 │   ├── App/
-│   │   └── ZebraRedactApp.swift   # @main, WindowGroup
+│   │   ├── ZebraRedactApp.swift    # @main, WindowGroup, Settings scene
+│   │   └── AppDelegate.swift       # NSStatusItem, hotkey, onboarding
 │   ├── Models/
-│   │   ├── PIIItem.swift          # PII data model + alternatives
-│   │   ├── PIIType.swift          # Enum of detectable PII categories
+│   │   ├── PIIItem.swift           # PII data model + token alternatives
+│   │   ├── PIIType.swift           # Enum of detectable PII categories
 │   │   └── ConfidenceAssessment.swift
 │   ├── Services/
-│   │   ├── PIIDetector.swift      # Detection orchestrator + masking pipeline
-│   │   ├── NLTaggerDetector.swift # Apple NLP detection
-│   │   ├── RegexDetector.swift    # Regex-based detection
-│   │   ├── GhostMappingStore.swift # Token ↔ original mapping (rehydration)
-│   │   ├── ModelManager.swift     # MLX model lifecycle
-│   │   └── VaultManager.swift     # Keychain vault
+│   │   ├── PIIDetector.swift       # Detection orchestrator + masking pipeline
+│   │   ├── NLTaggerDetector.swift  # Apple NLP (runs on text.capitalized for lowercase coverage)
+│   │   ├── RegexDetector.swift     # Pattern-based detection
+│   │   └── TokenMappingStore.swift # Token ↔ original mapping (rehydration)
+│   ├── Views/
+│   │   ├── Onboarding/OnboardingView.swift
+│   │   └── Settings/SettingsView.swift
 │   └── Utilities/
-│       ├── DesignSystem.swift     # Colors, typography
+│       ├── DesignSystem.swift      # Colors, typography, spacing
 │       └── Constants.swift
 │
 └── (root — compiled into target)
-    ├── MainWindow.swift           # Main UI: sidebar + panels + bottom bar
-    ├── ClickableTokenTextView.swift # NSTextView with clickable + right-click tokens
-    ├── RedactionMode.swift        # .token / .semantic / .llmAware
-    ├── SemanticAnalyzer.swift     # Semantic replacement helpers
-    ├── OllamaEngine.swift         # Ollama HTTP client + model management
-    ├── LLMAwareSetupSheet.swift   # Ollama setup UI
-    ├── MLXContextEngine.swift     # MLX inference stub
-    └── FoundationModelEngine.swift # Apple FoundationModels engine (macOS 26+)
+    ├── MainWindow.swift            # Main UI: top bar, twin panels, sidebar, bottom bar
+    └── ClickableTokenTextView.swift # NSTextView with spoiler overlay + right-click tagging
 ```
 
 ## Privacy
 
-- All detection and inference runs entirely on-device
+- All detection runs entirely on-device
 - No data is sent to any external server
-- Vault entries stored in macOS Keychain
+- Token mapping is stored in memory for the session only
 - `NSPrivacyTracking: false` — no tracking, no collected data types
 
 ## License

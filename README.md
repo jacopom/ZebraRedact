@@ -48,6 +48,8 @@ ZebraRedact replaces sensitive values with structured, reversible tokens. The AI
 
 3. **Restore** — Paste the AI's response (tokens and all) into the **Restore** tab. ZebraRedact rehydrates every token back to its original value inline.
 
+![ZebraRedact workflow](Assets/zebraflow.png)
+
 **Why tokens instead of deletion?** Tokens preserve the structure the AI needs to give a useful answer — while keeping the real values on your device. The same entity always gets the same token across the document, so references stay consistent.
 
 ---

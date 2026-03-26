@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZebraRedact</title>
+    <script>
+      // Apply saved theme before React loads to prevent flash
+      ;(function(){var t=localStorage.getItem('zr:theme');if(t&&t!=='system')document.documentElement.setAttribute('data-theme',t)})()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -146,16 +146,17 @@ html, body, #root {
 
 /* Demo card */
 .demo-section {
-  padding: 0 24px 96px;
+  padding: 0 24px 48px;
 }
 
 .demo-gif-wrap {
-  max-width: 900px;
-  margin: 0 auto 64px;
-  border-radius: 16px;
+  max-width: 860px;
+  margin: 0 auto;
+  border-radius: 14px;
   overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.10);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  background: #f5f5f5; /* always light — matches GIF background */
 }
 
 .demo-gif-wrap img {

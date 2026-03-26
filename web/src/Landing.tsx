@@ -30,29 +30,6 @@ export function Landing({ onStart }: Props) {
         <div className="demo-gif-wrap">
           <img src="/demo.gif" alt="ZebraRedact workflow demo" />
         </div>
-        <div className="demo-card">
-          <div className="demo-col">
-            <div className="demo-label">You write</div>
-            <pre className="demo-code demo-code-before">{`Draft a proposal for Marco Ferretti
-(m.ferretti@luxuryhotels.it,
-+39 02 8934 5512), CTO at Bellariva
-Group. We met at HospitalityTech
-Rome — he was interested but
-Salesforce is also pitching.
-Offering €24k/year analytics.`}</pre>
-          </div>
-          <div className="demo-arrow">→</div>
-          <div className="demo-col">
-            <div className="demo-label">AI receives</div>
-            <pre className="demo-code demo-code-after">{`Draft a proposal for `}<span className="demo-bar" />{`
-(`}<span className="demo-bar demo-bar-lg" />{`,
-`}<span className="demo-bar demo-bar-md" />{`), CTO at `}<span className="demo-bar" />{`
-Group. We met at HospitalityTech
-Rome — he was interested but
-`}<span className="demo-bar" />{` is also pitching.
-Offering €24k/year analytics.`}</pre>
-          </div>
-        </div>
       </section>
 
       {/* ── Steps ── */}

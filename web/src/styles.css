@@ -149,6 +149,20 @@ html, body, #root {
   padding: 0 24px 96px;
 }
 
+.demo-gif-wrap {
+  max-width: 900px;
+  margin: 0 auto 64px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+
+.demo-gif-wrap img {
+  width: 100%;
+  display: block;
+}
+
 .demo-card {
   max-width: 860px;
   margin: 0 auto;

@@ -25,8 +25,11 @@ export function Landing({ onStart }: Props) {
         </button>
       </section>
 
-      {/* ── Demo card ── */}
+      {/* ── Demo GIF ── */}
       <section className="demo-section">
+        <div className="demo-gif-wrap">
+          <img src="/demo.gif" alt="ZebraRedact workflow demo" />
+        </div>
         <div className="demo-card">
           <div className="demo-col">
             <div className="demo-label">You write</div>

@@ -9,7 +9,7 @@ export function Landing({ onStart, onNavigate }: Props) {
   useSEO({
     title: 'ZebraRedact — Redact Sensitive Data Before Sending to AI',
     description: 'Paste text, redact names, emails, and PII with one click, then send safely to ChatGPT, Claude, or Gemini. Restore original values inline. Free, no signup, runs in your browser.',
-    canonical: 'https://zebraredact.com/',
+    canonical: 'https://zebraredact-web.vercel.app/',
   })
 
   return (

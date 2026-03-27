@@ -10,7 +10,7 @@ export function BlogIndex({ onNavigate, onStart }: Props) {
   useSEO({
     title: 'Blog — ZebraRedact',
     description: 'Guides on protecting sensitive data, PII, and privacy when using AI tools like ChatGPT, Claude, and Gemini.',
-    canonical: 'https://zebraredact.com/blog',
+    canonical: 'https://zebraredact-web.vercel.app/blog',
   })
 
   return (

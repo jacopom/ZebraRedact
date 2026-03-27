@@ -132,7 +132,7 @@ export function BlogPost({ slug, onNavigate, onStart }: Props) {
   useSEO({
     title: post ? `${post.title} — ZebraRedact` : 'Post Not Found — ZebraRedact',
     description: post?.description ?? 'ZebraRedact: redact sensitive data before using AI.',
-    canonical: post ? `https://zebraredact.com/blog/${post.slug}` : undefined,
+    canonical: post ? `https://zebraredact-web.vercel.app/blog/${post.slug}` : undefined,
   })
 
   if (!post) {
@@ -160,8 +160,8 @@ export function BlogPost({ slug, onNavigate, onStart }: Props) {
     headline: post.title,
     description: post.description,
     datePublished: post.date,
-    publisher: { '@type': 'Organization', name: 'ZebraRedact', url: 'https://zebraredact.com' },
-    mainEntityOfPage: `https://zebraredact.com/blog/${post.slug}`,
+    publisher: { '@type': 'Organization', name: 'ZebraRedact', url: 'https://zebraredact-web.vercel.app' },
+    mainEntityOfPage: `https://zebraredact-web.vercel.app/blog/${post.slug}`,
   }
 
   return (

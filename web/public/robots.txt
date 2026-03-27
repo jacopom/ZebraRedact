@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://zebraredact.com/sitemap.xml
+Sitemap: https://zebraredact-web.vercel.app/sitemap.xml

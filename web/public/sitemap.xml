@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://zebraredact.com/</loc>
+    <loc>https://zebraredact-web.vercel.app/</loc>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://zebraredact.com/blog</loc>
+    <loc>https://zebraredact-web.vercel.app/blog</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://zebraredact.com/blog/how-to-redact-sensitive-data-before-using-chatgpt</loc>
+    <loc>https://zebraredact-web.vercel.app/blog/how-to-redact-sensitive-data-before-using-chatgpt</loc>
     <lastmod>2025-03-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://zebraredact.com/blog/is-chatgpt-safe-for-confidential-data</loc>
+    <loc>https://zebraredact-web.vercel.app/blog/is-chatgpt-safe-for-confidential-data</loc>
     <lastmod>2025-03-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://zebraredact.com/blog/what-is-pii-types-of-personally-identifiable-information</loc>
+    <loc>https://zebraredact-web.vercel.app/blog/what-is-pii-types-of-personally-identifiable-information</loc>
     <lastmod>2025-02-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://zebraredact.com/blog/ai-privacy-risks-what-happens-to-your-data</loc>
+    <loc>https://zebraredact-web.vercel.app/blog/ai-privacy-risks-what-happens-to-your-data</loc>
     <lastmod>2025-02-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://zebraredact.com/blog/how-to-use-ai-safely-at-work</loc>
+    <loc>https://zebraredact-web.vercel.app/blog/how-to-use-ai-safely-at-work</loc>
     <lastmod>2025-02-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://zebraredact.com/blog/gdpr-and-ai-what-you-need-to-know</loc>
+    <loc>https://zebraredact-web.vercel.app/blog/gdpr-and-ai-what-you-need-to-know</loc>
     <lastmod>2025-02-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

@@ -2,6 +2,8 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { Editor, EditorHandle } from './Editor'
 import { SettingsModal, Theme } from './SettingsModal'
 import { Landing } from './Landing'
+import { BlogIndex } from './blog/BlogIndex'
+import { BlogPost } from './blog/BlogPost'
 import { buildPrompt, LLM_PLATFORMS, LLMPlatform } from './llm'
 
 const DEFAULT_LLM_KEY = 'zr:defaultLLM'
@@ -27,7 +29,23 @@ function syncCopy(text: string) {
   navigator.clipboard?.writeText(text).catch(() => {})
 }
 
+function usePath() {
+  const [path, setPath] = useState(window.location.pathname)
+  useEffect(() => {
+    const onPop = () => setPath(window.location.pathname)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+  const navigate = useCallback((to: string) => {
+    window.history.pushState(null, '', to)
+    setPath(to)
+    window.scrollTo(0, 0)
+  }, [])
+  return { path, navigate }
+}
+
 export default function App() {
+  const { path, navigate } = usePath()
   // ALL hooks must come before any conditional return
   const [showEditor, setShowEditor] = useState(() => !!localStorage.getItem(SEEN_LANDING_KEY))
   const editorRef = useRef<EditorHandle>(null)
@@ -47,7 +65,8 @@ export default function App() {
   const handleStart = useCallback(() => {
     localStorage.setItem(SEEN_LANDING_KEY, '1')
     setShowEditor(true)
-  }, [])
+    navigate('/')
+  }, [navigate])
 
   const buildCurrentPrompt = useCallback(() => {
     const text = editorRef.current?.getRedactedText() ?? ''
@@ -97,13 +116,20 @@ export default function App() {
     return () => document.removeEventListener('mousedown', close)
   }, [showLLMMenu])
 
+  // Blog routes
+  if (path === '/blog') return <BlogIndex onNavigate={navigate} onStart={handleStart} />
+  if (path.startsWith('/blog/')) {
+    const slug = path.replace('/blog/', '')
+    return <BlogPost slug={slug} onNavigate={navigate} onStart={handleStart} />
+  }
+
   // Landing page — shown once, skipped on return visits
-  if (!showEditor) return <Landing onStart={handleStart} />
+  if (!showEditor) return <Landing onStart={handleStart} onNavigate={navigate} />
 
   return (
     <div className="app">
       <header className="header">
-        <button className="logo logo--btn" onClick={() => setShowEditor(false)}>ZebraRedact</button>
+        <button className="logo logo--btn" onClick={() => { setShowEditor(false); navigate('/') }}>ZebraRedact</button>
         <div className="header-actions">
           {hasTokens && (
             <button className="btn-ghost" onClick={() => editorRef.current?.unredactAll()}>

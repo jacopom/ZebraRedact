@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://zebraredact.com/sitemap.xml

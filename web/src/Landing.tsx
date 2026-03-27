@@ -1,8 +1,17 @@
+import { useSEO } from './useSEO'
+
 interface Props {
   onStart: () => void
+  onNavigate?: (path: string) => void
 }
 
-export function Landing({ onStart }: Props) {
+export function Landing({ onStart, onNavigate }: Props) {
+  useSEO({
+    title: 'ZebraRedact — Redact Sensitive Data Before Sending to AI',
+    description: 'Paste text, redact names, emails, and PII with one click, then send safely to ChatGPT, Claude, or Gemini. Restore original values inline. Free, no signup, runs in your browser.',
+    canonical: 'https://zebraredact.com/',
+  })
+
   return (
     <div className="landing">
 
@@ -28,7 +37,8 @@ export function Landing({ onStart }: Props) {
       {/* ── Demo GIF ── */}
       <section className="demo-section">
         <div className="demo-gif-wrap">
-          <img src="/demo.gif" alt="ZebraRedact workflow demo" />
+          <img className="gif-light" src="/demo.gif" alt="ZebraRedact workflow demo" />
+          <img className="gif-dark" src="/demo-dark.gif" alt="ZebraRedact workflow demo" />
         </div>
       </section>
 
@@ -91,7 +101,10 @@ export function Landing({ onStart }: Props) {
       </section>
 
       <footer className="lfooter">
-        <span>© 2025 ZebraRedact</span>
+        <span>&copy; 2026 ZebraRedact</span>
+        {onNavigate && (
+          <a href="/blog" className="lfooter-link" onClick={e => { e.preventDefault(); onNavigate('/blog') }}>Blog</a>
+        )}
       </footer>
 
     </div>

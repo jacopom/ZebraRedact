@@ -146,22 +146,24 @@ html, body, #root {
 
 /* Demo card */
 .demo-section {
-  padding: 0 24px 48px;
+  padding: 0 0 48px;
 }
 
 .demo-gif-wrap {
-  max-width: 860px;
-  margin: 0 auto;
-  border-radius: 14px;
+  width: 100%;
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.10);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-  background: #f5f5f5; /* always light — matches GIF background */
+  border-top: 1px solid rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: #f5f5f5;
 }
 
 .demo-gif-wrap img {
   width: 100%;
   display: block;
+  max-height: 520px;
+  object-fit: cover;
+  object-position: center top;
 }
 
 .demo-card {
